@@ -15,7 +15,9 @@
                 </div>
             </div>
 
-            <form method="post" asp-page-handler="SearchAddress" id="addressForm">
+            <form method="post" action="/SiteEvaluator/EvaluationWizard?handler=SearchAddress" id="addressForm">
+                @Html.AntiForgeryToken()
+                
                 <!-- Search Type Tabs -->
                 <ul class="nav nav-tabs mb-4" role="tablist">
                     <li class="nav-item" role="presentation">

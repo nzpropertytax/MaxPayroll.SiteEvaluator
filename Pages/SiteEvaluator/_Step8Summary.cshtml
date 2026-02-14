@@ -278,19 +278,19 @@
 
     <!-- Navigation -->
     <div class="wizard-nav">
-        <form method="post" asp-page-handler="PreviousStep" class="d-inline">
+        <form method="post" action="/SiteEvaluator/EvaluationWizard?handler=PreviousStep" class="d-inline">
             <input type="hidden" name="currentStep" value="8" />
             <button type="submit" class="btn btn-outline-secondary btn-lg">
                 <i class="fa fa-arrow-left me-2"></i>Back
             </button>
         </form>
         <div>
-            <form method="post" asp-page-handler="StartFresh" class="d-inline me-2">
+            <form method="post" action="/SiteEvaluator/EvaluationWizard?handler=StartFresh" class="d-inline me-2">
                 <button type="submit" class="btn btn-outline-secondary btn-lg">
                     <i class="fa fa-redo me-1"></i> Start New
                 </button>
             </form>
-            <form method="post" asp-page-handler="CompleteWizard" class="d-inline">
+            <form method="post" action="/SiteEvaluator/EvaluationWizard?handler=CompleteWizard" class="d-inline">
                 <button type="submit" class="btn btn-success btn-lg">
                     <i class="fa fa-check me-2"></i>Complete & Save
                 </button>

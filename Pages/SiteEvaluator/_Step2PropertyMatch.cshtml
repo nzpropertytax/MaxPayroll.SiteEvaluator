@@ -36,7 +36,9 @@
         </div>
     </div>
 
-    <form method="post" asp-page-handler="SelectProperty" id="propertyForm">
+    <form method="post" action="/SiteEvaluator/EvaluationWizard?handler=SelectProperty" id="propertyForm">
+        @Html.AntiForgeryToken()
+        
         @if (hasExistingJobs)
         {
             <!-- Existing Jobs Section (NEW - Job-based architecture) -->
@@ -266,12 +268,9 @@
         {
             <!-- Navigation -->
             <div class="wizard-nav">
-                <form method="post" asp-page-handler="PreviousStep" class="d-inline">
-                    <input type="hidden" name="currentStep" value="2" />
-                    <button type="submit" class="btn btn-outline-secondary btn-lg">
-                        <i class="fa fa-arrow-left me-2"></i>Back
-                    </button>
-                </form>
+                <button type="submit" form="backForm" class="btn btn-outline-secondary btn-lg">
+                    <i class="fa fa-arrow-left me-2"></i>Back
+                </button>
                 <button type="submit" class="btn btn-primary btn-lg">
                     @if (hasExistingJobs && !Model.CreateNew)
                     {
@@ -285,6 +284,12 @@
                 </button>
             </div>
         }
+    </form>
+    
+    <!-- Separate form for Back button (outside propertyForm to avoid nesting) -->
+    <form method="post" action="/SiteEvaluator/EvaluationWizard?handler=PreviousStep" id="backForm" style="display:none;">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="currentStep" value="2" />
     </form>
 </div>
 

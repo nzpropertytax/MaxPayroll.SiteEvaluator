@@ -6,7 +6,8 @@ namespace MaxPayroll.SiteEvaluator.Services.Integration;
 /// Mock data provider for development and testing when API keys are not configured.
 /// Uses real NZ addresses with realistic property data.
 /// 
-/// PRIMARY CASE STUDY: 360 Barbadoes Street, Christchurch
+/// PRIMARY CASE STUDY: 353 Barbadoes Street, Christchurch
+/// Real property data from Christchurch City Council website.
 /// Use case: Multi-unit residential development (block of flats)
 /// </summary>
 public static class MockDataProvider
@@ -17,25 +18,46 @@ public static class MockDataProvider
     public static readonly List<MockAddress> SampleAddresses = new()
     {
         // ============================================================
-        // PRIMARY CASE STUDY: 360 Barbadoes Street, Christchurch
+        // PRIMARY CASE STUDY: 353 Barbadoes Street, Christchurch
+        // REAL DATA from Christchurch City Council website
         // Proposed: Multi-storey block of residential flats (2-4 levels)
         // ============================================================
         new MockAddress
         {
-            FullAddress = "360 Barbadoes Street, Christchurch Central, Christchurch 8011",
-            Suburb = "Christchurch Central",
+            // Real address from CCC
+            FullAddress = "353 Barbadoes Street, Central City, Christchurch 8011",
+            Suburb = "Central City",
             City = "Christchurch",
             Latitude = -43.5270,
             Longitude = 172.6420,
             TerritorialAuthority = "Christchurch City Council",
-            LegalDescription = "Lot 1 DP 78542",
-            TitleReference = "CB32A/891",
-            AreaSqm = 850,
-            // Detailed case study data
-            Zoning = "Residential Medium Density (RMD)",
-            ZoneCode = "RMD",
+            
+            // Real legal/valuation data from CCC
+            LegalDescription = "Pt Sec 509 Christchurch Town",
+            TitleReference = "CB32A/891",  // Example - would need LINZ lookup for real
+            AreaSqm = 177,  // 0.0177 hectares = 177 m²
+            ValuationNumber = "22710 21300",
+            RateAccountNumber = "73028090",
+            
+            // Real valuation data (as at 1 August 2022)
+            LandValue = 280000,
+            ImprovementsValue = 60000,
+            CapitalValue = 340000,
+            
+            // Real rates data (2025/2026)
+            CurrentYearRates = 2302.22m,
+            RatesInstalment1 = 575.49m,
+            RatesInstalment2 = 575.49m,
+            RatesInstalment3 = 575.49m,
+            RatesInstalment4 = 575.75m,
+            RatingYear = "2025/2026",
+            
+            // Zoning - Central City zone (typical for this location)
+            Zoning = "Central City Residential",
+            ZoneCode = "CCR",
             MaxHeight = 14.0,
             MaxCoverage = 50,
+            
             // Hazard data from engineering report
             LiquefactionCategory = "TC2",
             LiquefactionDescription = "Moderate liquefaction vulnerability - specific engineering assessment likely required",
@@ -43,10 +65,12 @@ public static class MockDataProvider
             FloodNotes = "Localised ponding possible along parts of Barbadoes Street",
             SeismicZone = "High",
             WindZone = "Medium-High",
+            
             // Geotechnical from CGD
             SiteClass = "D",
             GroundwaterDepth = 1.5,
             SoilDescription = "Silty sands and gravels with variable sands and occasional silt/peat lenses",
+            
             // Infrastructure
             WaterAvailable = true,
             WastewaterAvailable = true,
@@ -54,9 +78,10 @@ public static class MockDataProvider
             StormwaterNotes = "On-site attenuation required due to shallow groundwater and limited soakage",
             PowerAvailable = true,
             FibreAvailable = true,
+            
             // Development context
             ProposedUse = "Multi-unit residential (block of flats)",
-            DevelopmentNotes = "2-4 storey residential, on-site parking, stormwater attenuation required"
+            DevelopmentNotes = "2-4 storey residential, on-site parking, stormwater attenuation required. Small site (177m²) may limit development options."
         },
 
         // Other Christchurch addresses for variety
@@ -176,7 +201,7 @@ public static class MockDataProvider
         var match = SampleAddresses.FirstOrDefault(a => 
             a.FullAddress.ToLowerInvariant().Contains(lowerAddress) ||
             lowerAddress.Contains(a.FullAddress.ToLowerInvariant().Split(',')[0]) ||
-            // Match partial address (e.g., "360 Barbadoes")
+            // Match partial address (e.g., "353 Barbadoes")
             (lowerAddress.Length > 5 && a.FullAddress.ToLowerInvariant().Contains(lowerAddress.Substring(0, Math.Min(15, lowerAddress.Length)))));
         
         if (match == null)
@@ -226,11 +251,11 @@ public static class MockDataProvider
     }
 
     /// <summary>
-    /// Get the primary case study address (360 Barbadoes Street).
+    /// Get the primary case study address (353 Barbadoes Street).
     /// </summary>
     public static MockAddress GetPrimaryCaseStudy()
     {
-        return SampleAddresses.First(a => a.FullAddress.Contains("360 Barbadoes"));
+        return SampleAddresses.First(a => a.FullAddress.Contains("353 Barbadoes"));
     }
 
     /// <summary>
@@ -247,7 +272,7 @@ public static class MockDataProvider
 }
 
 /// <summary>
-/// Mock address data structure with comprehensive engineering data.
+/// Mock address data structure with comprehensive engineering and council data.
 /// </summary>
 public class MockAddress
 {
@@ -261,6 +286,21 @@ public class MockAddress
     public string? LegalDescription { get; set; }
     public string? TitleReference { get; set; }
     public double? AreaSqm { get; set; }
+    
+    // Council/Valuation data
+    public string? ValuationNumber { get; set; }
+    public string? RateAccountNumber { get; set; }
+    public decimal? LandValue { get; set; }
+    public decimal? ImprovementsValue { get; set; }
+    public decimal? CapitalValue { get; set; }
+    
+    // Rates data
+    public decimal? CurrentYearRates { get; set; }
+    public decimal? RatesInstalment1 { get; set; }
+    public decimal? RatesInstalment2 { get; set; }
+    public decimal? RatesInstalment3 { get; set; }
+    public decimal? RatesInstalment4 { get; set; }
+    public string? RatingYear { get; set; }
     
     // Zoning
     public string? Zoning { get; set; }

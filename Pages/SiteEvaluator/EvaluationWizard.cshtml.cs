@@ -269,6 +269,9 @@ public class EvaluationWizardModel : PageModel
     /// </summary>
     public async Task<IActionResult> OnPostSearchAddressAsync()
     {
+        // Clear model state - we only care about Address being present
+        ModelState.Clear();
+        
         WizardState = TempData.GetSiteEvaluatorWizardState();
         
         try
@@ -279,8 +282,11 @@ public class EvaluationWizardModel : PageModel
                 ErrorMessage = "Please enter an address to search.";
                 CurrentStep = 1;
                 InitializeStepConfigs();
+                TempData.SetSiteEvaluatorWizardState(WizardState);
                 return Page();
             }
+
+            _logger.LogInformation("Searching for address: {Address}", Address);
 
             // Parse intended use category
             var useCategory = IntendedUseCategory switch
@@ -349,57 +355,82 @@ public class EvaluationWizardModel : PageModel
             var matchResult = new PropertyMatchResult();
 
             // Search for existing jobs at this address
-            var existingJobs = await _jobService.SearchJobsAsync(Address.Split(',')[0]);
-            foreach (var job in existingJobs.Take(10))
+            try
             {
-                matchResult.ExistingJobs.Add(new ExistingJobMatch
+                var existingJobs = await _jobService.SearchJobsAsync(Address.Split(',')[0]);
+                foreach (var job in existingJobs.Take(10))
                 {
-                    Id = job.Id,
-                    JobReference = job.JobReference,
-                    Address = job.Address,
-                    CustomerName = job.CustomerName,
-                    CustomerCompany = job.CustomerCompany,
-                    Purpose = job.Purpose,
-                    Status = job.Status,
-                    CreatedDate = job.CreatedDate,
-                    LastUpdated = job.LastUpdated,
-                    CompletenessPercent = job.CompletenessPercent,
-                    ReportCount = job.Reports.Count
-                });
+                    matchResult.ExistingJobs.Add(new ExistingJobMatch
+                    {
+                        Id = job.Id,
+                        JobReference = job.JobReference,
+                        Address = job.Address,
+                        CustomerName = job.CustomerName,
+                        CustomerCompany = job.CustomerCompany,
+                        Purpose = job.Purpose,
+                        Status = job.Status,
+                        CreatedDate = job.CreatedDate,
+                        LastUpdated = job.LastUpdated,
+                        CompletenessPercent = job.CompletenessPercent,
+                        ReportCount = job.Reports.Count
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error searching for existing jobs");
+                // Continue without existing jobs - not critical
             }
 
             // Check for existing evaluations (legacy support)
-            var existingEvaluations = await _repository.FindAsync<SiteEvaluation>(e => 
-                e.Location != null && 
-                e.Location.Address != null && 
-                e.Location.Address.Contains(Address.Split(',')[0]));
-
-            foreach (var existing in existingEvaluations.Take(5))
+            try
             {
-                matchResult.ExistingEvaluations.Add(new ExistingEvaluationMatch
+                var searchTerm = Address.Split(',')[0];
+                var existingEvaluations = await _repository.FindAsync<SiteEvaluation>(e => 
+                    e.Location != null && 
+                    e.Location.Address != null && 
+                    e.Location.Address.Contains(searchTerm));
+
+                foreach (var existing in existingEvaluations.Take(5))
                 {
-                    Id = existing.Id,
-                    Address = existing.Location.Address,
-                    CreatedDate = existing.CreatedDate,
-                    LastUpdated = existing.LastUpdated,
-                    CompletenessPercent = (int)(existing.Completeness?.CompletionPercentage ?? 0),
-                    Status = existing.Status
-                });
+                    matchResult.ExistingEvaluations.Add(new ExistingEvaluationMatch
+                    {
+                        Id = existing.Id,
+                        Address = existing.Location.Address,
+                        CreatedDate = existing.CreatedDate,
+                        LastUpdated = existing.LastUpdated,
+                        CompletenessPercent = (int)(existing.Completeness?.CompletionPercentage ?? 0),
+                        Status = existing.Status
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error searching for existing evaluations");
+                // Continue without existing evaluations - not critical
             }
 
             // Get LINZ address suggestions
-            var linzSuggestions = await _linzService.GetAddressSuggestionsAsync(Address);
-            foreach (var suggestion in linzSuggestions.Take(10))
+            try
             {
-                matchResult.LinzMatches.Add(new LinzPropertyMatch
+                var linzSuggestions = await _linzService.GetAddressSuggestionsAsync(Address);
+                foreach (var suggestion in linzSuggestions.Take(10))
                 {
-                    FullAddress = suggestion.FullAddress,
-                    Suburb = suggestion.Suburb,
-                    City = suggestion.City,
-                    Latitude = suggestion.Latitude ?? 0,
-                    Longitude = suggestion.Longitude ?? 0,
-                    MatchConfidence = 100 - (matchResult.LinzMatches.Count * 5) // Simple confidence scoring
-                });
+                    matchResult.LinzMatches.Add(new LinzPropertyMatch
+                    {
+                        FullAddress = suggestion.FullAddress,
+                        Suburb = suggestion.Suburb,
+                        City = suggestion.City,
+                        Latitude = suggestion.Latitude ?? 0,
+                        Longitude = suggestion.Longitude ?? 0,
+                        MatchConfidence = 100 - (matchResult.LinzMatches.Count * 5) // Simple confidence scoring
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error getting LINZ address suggestions");
+                // Continue without LINZ suggestions - user can still proceed
             }
 
             // Auto-select if only one high-confidence match and no existing jobs
@@ -409,6 +440,22 @@ public class EvaluationWizardModel : PageModel
             {
                 matchResult.SelectedProperty = matchResult.LinzMatches[0];
                 matchResult.CreateNew = true;
+            }
+            
+            // If no LINZ matches found, add the user's entered address as a manual entry option
+            if (matchResult.LinzMatches.Count == 0)
+            {
+                matchResult.LinzMatches.Add(new LinzPropertyMatch
+                {
+                    FullAddress = Address.Trim(),
+                    MatchConfidence = 50, // Lower confidence for manual entry
+                    Suburb = "Manual Entry",
+                    City = ""
+                });
+                matchResult.SelectedProperty = matchResult.LinzMatches[0];
+                matchResult.CreateNew = true;
+                
+                _logger.LogInformation("No LINZ matches found, using manual address entry: {Address}", Address);
             }
 
             WizardState.PropertyMatch = matchResult;
@@ -436,10 +483,21 @@ public class EvaluationWizardModel : PageModel
     /// </summary>
     public async Task<IActionResult> OnPostSelectPropertyAsync()
     {
+        // Clear model state since we're loading state from TempData
+        ModelState.Clear();
+        
         WizardState = TempData.GetSiteEvaluatorWizardState();
         
         try
         {
+            // Validate we have wizard state
+            if (WizardState.Address == null)
+            {
+                _logger.LogWarning("No wizard address state found - redirecting to step 1");
+                ErrorMessage = "Session expired. Please start again.";
+                return RedirectToPage(new { step = 1 });
+            }
+            
             // Check if continuing an existing job
             if (!CreateNew && !string.IsNullOrEmpty(SelectedJobId))
             {
@@ -502,7 +560,7 @@ public class EvaluationWizardModel : PageModel
             }
 
             // Map wizard purpose to job purpose
-            var jobPurpose = WizardState.Address.IntendedUse.Purpose switch
+            var jobPurpose = WizardState.Address?.IntendedUse?.Purpose switch
             {
                 Models.Wizard.EvaluationPurpose.Sale => JobPurpose.Sale,
                 Models.Wizard.EvaluationPurpose.Development => JobPurpose.Development,
@@ -519,19 +577,19 @@ public class EvaluationWizardModel : PageModel
             {
                 Address = selectedAddress,
                 Title = $"Evaluation - {selectedAddress}",
-                CustomerName = WizardState.CustomerInfo.CustomerName,
-                CustomerCompany = WizardState.CustomerInfo.CustomerCompany,
-                CustomerEmail = WizardState.CustomerInfo.CustomerEmail,
-                CustomerReference = WizardState.CustomerInfo.CustomerReference,
+                CustomerName = WizardState.CustomerInfo?.CustomerName,
+                CustomerCompany = WizardState.CustomerInfo?.CustomerCompany,
+                CustomerEmail = WizardState.CustomerInfo?.CustomerEmail,
+                CustomerReference = WizardState.CustomerInfo?.CustomerReference,
                 Purpose = jobPurpose,
-                IntendedUse = WizardState.Address.IntendedUse.Category,
-                IntendedUseDetails = WizardState.Address.IntendedUse.SpecificUse,
-                IsNewDevelopment = WizardState.Address.IntendedUse.IsNewDevelopment,
-                ProposedHeight = WizardState.Address.IntendedUse.ProposedHeight,
-                ProposedCoverage = WizardState.Address.IntendedUse.ProposedCoverage,
-                ProposedUnits = WizardState.Address.IntendedUse.ProposedUnits,
-                ProposedGfa = WizardState.Address.IntendedUse.ProposedGfa,
-                InternalNotes = WizardState.Address.IntendedUse.Notes,
+                IntendedUse = WizardState.Address?.IntendedUse?.Category ?? PropertyUseCategory.Residential,
+                IntendedUseDetails = WizardState.Address?.IntendedUse?.SpecificUse,
+                IsNewDevelopment = WizardState.Address?.IntendedUse?.IsNewDevelopment ?? false,
+                ProposedHeight = WizardState.Address?.IntendedUse?.ProposedHeight,
+                ProposedCoverage = WizardState.Address?.IntendedUse?.ProposedCoverage,
+                ProposedUnits = WizardState.Address?.IntendedUse?.ProposedUnits,
+                ProposedGfa = WizardState.Address?.IntendedUse?.ProposedGfa,
+                InternalNotes = WizardState.Address?.IntendedUse?.Notes,
                 AutoStartDataCollection = true
             };
 
@@ -571,6 +629,7 @@ public class EvaluationWizardModel : PageModel
     /// </summary>
     public async Task<IActionResult> OnPostNextStepAsync(int currentStep)
     {
+        ModelState.Clear();
         WizardState = TempData.GetSiteEvaluatorWizardState();
         
         var nextStep = Math.Min(currentStep + 1, TotalSteps);
@@ -585,6 +644,7 @@ public class EvaluationWizardModel : PageModel
     /// </summary>
     public async Task<IActionResult> OnPostPreviousStepAsync(int currentStep)
     {
+        ModelState.Clear();
         WizardState = TempData.GetSiteEvaluatorWizardState();
         
         var prevStep = Math.Max(currentStep - 1, 1);
@@ -599,6 +659,7 @@ public class EvaluationWizardModel : PageModel
     /// </summary>
     public async Task<IActionResult> OnPostCompleteWizardAsync()
     {
+        ModelState.Clear();
         WizardState = TempData.GetSiteEvaluatorWizardState();
         
         try
@@ -650,6 +711,7 @@ public class EvaluationWizardModel : PageModel
     /// </summary>
     public async Task<IActionResult> OnPostRefreshSectionAsync(string section, int currentStep)
     {
+        ModelState.Clear();
         WizardState = TempData.GetSiteEvaluatorWizardState();
         
         try

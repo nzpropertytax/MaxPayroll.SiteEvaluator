@@ -103,8 +103,30 @@ public class SiteEvaluatorRepository : ISiteEvaluatorRepository, IDisposable
     {
         var collectionName = GetCollectionName<T>();
         var collection = _database.GetCollection<T>(collectionName);
-        var results = collection.FindAll().Where(predicate).ToList();
-        return Task.FromResult<IEnumerable<T>>(results);
+        
+        try
+        {
+            var results = collection.FindAll()
+                .Where(item =>
+                {
+                    try
+                    {
+                        return predicate(item);
+                    }
+                    catch
+                    {
+                        // Predicate failed (e.g., null reference) - exclude this item
+                        return false;
+                    }
+                })
+                .ToList();
+            return Task.FromResult<IEnumerable<T>>(results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in FindAsync for collection {Collection}", collectionName);
+            return Task.FromResult<IEnumerable<T>>(new List<T>());
+        }
     }
 
     public Task InsertAsync<T>(T entity) where T : class
