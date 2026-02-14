@@ -50,8 +50,15 @@ public class LiquefactionHazard
 public class SeismicHazard
 {
     public string Zone { get; set; } = string.Empty;
+    public double? ZoneFactor { get; set; }  // NZS 1170.5 Z-value
+    public string? SiteClass { get; set; }  // A, B, C, D, E per NZS 1170.5
+    public double? NearFaultFactor { get; set; }  // N-value per NZS 1170.5
     public double? PGA { get; set; }  // Peak Ground Acceleration
+    public double? PgaSls { get; set; }  // PGA for Serviceability Limit State (500-year)
+    public double? PgaUls { get; set; }  // PGA for Ultimate Limit State (2500-year)
+    public string? DesignStandard { get; set; }  // e.g., "NZS 1170.5:2004"
     public List<ActiveFault> NearbyFaults { get; set; } = [];
+    public DataSource? Source { get; set; }
 }
 
 public class ActiveFault
@@ -60,6 +67,9 @@ public class ActiveFault
     public double DistanceKm { get; set; }
     public string? RecurrenceInterval { get; set; }
     public string? LastRupture { get; set; }
+    public string? FaultType { get; set; }  // e.g., "Dextral strike-slip", "Reverse"
+    public string? SlipRate { get; set; }  // e.g., "27 mm/year"
+    public double? MaxMagnitude { get; set; }  // Maximum expected magnitude
 }
 
 public class ContaminationStatus
