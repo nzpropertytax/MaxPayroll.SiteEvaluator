@@ -1,5 +1,6 @@
 using MaxPayroll.SiteEvaluator.Models;
 using MaxPayroll.SiteEvaluator.Services;
+using MaxPayroll.SiteEvaluator.Services.Integration;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MaxPayroll.SiteEvaluator;
@@ -11,6 +12,11 @@ public static class SiteEvaluatorEndpoints
 {
     public static RouteGroupBuilder MapSiteEvaluatorApi(this RouteGroupBuilder group)
     {
+        // Address autocomplete endpoint
+        group.MapGet("/address/autocomplete", AddressAutocomplete)
+            .WithName("AddressAutocomplete")
+            .WithDescription("Get address suggestions for autocomplete");
+
         // Search endpoints
         group.MapPost("/search/address", SearchByAddress)
             .WithName("SearchByAddress")
@@ -62,6 +68,17 @@ public static class SiteEvaluatorEndpoints
     }
 
     // === Search Handlers ===
+
+    private static async Task<IResult> AddressAutocomplete(
+        [FromQuery] string q,
+        ILinzDataService linzService)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Length < 3)
+            return Results.Ok(Array.Empty<AddressSuggestion>());
+
+        var suggestions = await linzService.GetAddressSuggestionsAsync(q);
+        return Results.Ok(suggestions);
+    }
 
     private static async Task<IResult> SearchByAddress(
         [FromBody] AddressSearchRequest request,

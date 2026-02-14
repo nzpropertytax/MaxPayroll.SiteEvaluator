@@ -10,6 +10,19 @@ public interface ILinzDataService
     Task<SiteLocation?> LookupAddressAsync(string address, CancellationToken ct = default);
     Task<LandData?> GetTitleDataAsync(string titleReference, CancellationToken ct = default);
     Task<List<Coordinate>?> GetParcelBoundaryAsync(string parcelId, CancellationToken ct = default);
+    Task<List<AddressSuggestion>> GetAddressSuggestionsAsync(string query, CancellationToken ct = default);
+}
+
+/// <summary>
+/// Address suggestion for autocomplete.
+/// </summary>
+public class AddressSuggestion
+{
+    public string FullAddress { get; set; } = string.Empty;
+    public string? Suburb { get; set; }
+    public string? City { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
 }
 
 /// <summary>

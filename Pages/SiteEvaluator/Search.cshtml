@@ -1,0 +1,327 @@
+@page "/SiteEvaluator/Search"
+@model MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.SearchModel
+
+@{
+    ViewData["Title"] = Model.Evaluation != null 
+        ? $"Site Evaluation - {Model.Evaluation.Location.Address}" 
+        : "Site Search Results";
+}
+
+<div class="container py-4">
+    @* Search Header *@
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-page="/SiteEvaluator/Index">Site Evaluator</a></li>
+                    <li class="breadcrumb-item active">Search Results</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    @* Inline Search *@
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <form method="get" class="d-flex gap-2">
+                <input type="text" 
+                       class="form-control" 
+                       name="address" 
+                       value="@Model.Address" 
+                       placeholder="Enter address..." />
+                <button type="submit" class="btn btn-primary">Search</button>
+            </form>
+        </div>
+    </div>
+
+    @if (string.IsNullOrEmpty(Model.Address))
+    {
+        <div class="alert alert-info">
+            <h5>Enter an address to search</h5>
+            <p class="mb-0">Type a New Zealand address in the search box above to get started.</p>
+        </div>
+    }
+    else if (Model.IsLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Searching for site data...</p>
+        </div>
+    }
+    else if (Model.Evaluation != null)
+    {
+        <div class="row">
+            @* Sidebar *@
+            <div class="col-lg-4 mb-4">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">?? Location</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>@Model.Evaluation.Location.Address</h6>
+                        @if (!string.IsNullOrEmpty(Model.Evaluation.Location.LegalDescription))
+                        {
+                            <p class="text-muted small mb-1">@Model.Evaluation.Location.LegalDescription</p>
+                        }
+                        <p class="text-muted small font-monospace mb-0">
+                            @Model.Evaluation.Location.Latitude.ToString("F6"), @Model.Evaluation.Location.Longitude.ToString("F6")
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">?? Data Completeness</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress mb-2" style="height: 8px;">
+                            <div class="progress-bar bg-success" 
+                                 style="width: @Model.Evaluation.Completeness.CompletionPercentage%"></div>
+                        </div>
+                        <p class="mb-0">@Model.Evaluation.Completeness.CompletionPercentage.ToString("F0")% complete</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">?? Reports</h5>
+                    </div>
+                    <div class="card-body d-grid gap-2">
+                        <a href="/api/siteevaluator/reports/@Model.Evaluation.Id/summary" 
+                           class="btn btn-outline-primary" target="_blank">
+                            ?? Summary Report
+                        </a>
+                        <a href="/api/siteevaluator/reports/@Model.Evaluation.Id/full" 
+                           class="btn btn-outline-primary" target="_blank">
+                            ?? Full Report
+                        </a>
+                        <a href="/api/siteevaluator/reports/@Model.Evaluation.Id/geotech" 
+                           class="btn btn-outline-primary" target="_blank">
+                            ?? Geotech Brief
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            @* Main Content *@
+            <div class="col-lg-8">
+                @* Zoning *@
+                @if (Model.Evaluation.Zoning != null)
+                {
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">??? Zoning & Planning</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th style="width:35%">Zone</th>
+                                    <td>@Model.Evaluation.Zoning.Zone</td>
+                                </tr>
+                                @if (Model.Evaluation.Zoning.MaxHeight.HasValue)
+                                {
+                                    <tr>
+                                        <th>Max Height</th>
+                                        <td>@Model.Evaluation.Zoning.MaxHeight m</td>
+                                    </tr>
+                                }
+                                @if (Model.Evaluation.Zoning.MaxCoverage.HasValue)
+                                {
+                                    <tr>
+                                        <th>Max Coverage</th>
+                                        <td>@Model.Evaluation.Zoning.MaxCoverage%</td>
+                                    </tr>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.Evaluation.Zoning.DistrictPlanLink))
+                                {
+                                    <tr>
+                                        <th>District Plan</th>
+                                        <td><a href="@Model.Evaluation.Zoning.DistrictPlanLink" target="_blank">View Plan ?</a></td>
+                                    </tr>
+                                }
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                @* Hazards *@
+                @if (Model.Evaluation.Hazards != null)
+                {
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">?? Natural Hazards</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                @if (Model.Evaluation.Hazards.Flooding != null)
+                                {
+                                    <tr>
+                                        <th style="width:35%">Flood Zone</th>
+                                        <td class="@GetHazardClass(Model.Evaluation.Hazards.Flooding.Zone)">
+                                            @Model.Evaluation.Hazards.Flooding.Zone
+                                        </td>
+                                    </tr>
+                                }
+                                @if (Model.Evaluation.Hazards.Liquefaction != null)
+                                {
+                                    <tr>
+                                        <th>Liquefaction</th>
+                                        <td class="@GetLiquefactionClass(Model.Evaluation.Hazards.Liquefaction.Category)">
+                                            @Model.Evaluation.Hazards.Liquefaction.Category - @Model.Evaluation.Hazards.Liquefaction.Description
+                                        </td>
+                                    </tr>
+                                }
+                                @if (Model.Evaluation.Hazards.Seismic != null)
+                                {
+                                    <tr>
+                                        <th>Seismic Zone</th>
+                                        <td>@Model.Evaluation.Hazards.Seismic.Zone</td>
+                                    </tr>
+                                }
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                @* Geotechnical *@
+                @if (Model.Evaluation.Geotech != null)
+                {
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">?? Geotechnical Data</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th style="width:35%">Site Class</th>
+                                    <td>@(Model.Evaluation.Geotech.SiteClass ?? "Not determined")</td>
+                                </tr>
+                                <tr>
+                                    <th>Nearby Boreholes</th>
+                                    <td>@Model.Evaluation.Geotech.NearbyBoreholes.Count within 500m</td>
+                                </tr>
+                                <tr>
+                                    <th>Nearby CPTs</th>
+                                    <td>@Model.Evaluation.Geotech.NearbyCpts.Count within 500m</td>
+                                </tr>
+                                <tr>
+                                    <th>Nearby Reports</th>
+                                    <td>@Model.Evaluation.Geotech.NearbyReports.Count</td>
+                                </tr>
+                            </table>
+                            @if (Model.Evaluation.Geotech.GeotechInvestigationRequired)
+                            {
+                                <div class="alert alert-warning mb-0">
+                                    ?? Site-specific geotechnical investigation recommended
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @* Infrastructure *@
+                @if (Model.Evaluation.Infrastructure != null)
+                {
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">?? Infrastructure</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th style="width:35%">Water Supply</th>
+                                    <td class="@(Model.Evaluation.Infrastructure.Water?.Available == true ? "text-success" : "text-muted")">
+                                        @(Model.Evaluation.Infrastructure.Water?.Available == true ? "? Available" : "? Not available")
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Wastewater</th>
+                                    <td class="@(Model.Evaluation.Infrastructure.Wastewater?.Available == true ? "text-success" : "text-muted")">
+                                        @(Model.Evaluation.Infrastructure.Wastewater?.Available == true ? "? Available" : "? Not available")
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Stormwater</th>
+                                    <td class="@(Model.Evaluation.Infrastructure.Stormwater?.Available == true ? "text-success" : "text-muted")">
+                                        @(Model.Evaluation.Infrastructure.Stormwater?.Available == true ? "? Available" : "? Not available")
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Power</th>
+                                    <td class="@(Model.Evaluation.Infrastructure.Power?.Available == true ? "text-success" : "text-muted")">
+                                        @(Model.Evaluation.Infrastructure.Power?.Available == true ? "? Available" : "? Not available")
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Fibre</th>
+                                    <td class="@(Model.Evaluation.Infrastructure.Communications?.FibreAvailable == true ? "text-success" : "text-muted")">
+                                        @(Model.Evaluation.Infrastructure.Communications?.FibreAvailable == true ? "? Available" : "? Not available")
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                @* Data Gaps *@
+                @if (Model.Evaluation.DataGaps.Count > 0)
+                {
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">?? Data Gaps</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var gap in Model.Evaluation.DataGaps)
+                                {
+                                    <li class="mb-2 @GetGapClass(gap.Severity)">
+                                        <strong>@gap.Section - @gap.Field:</strong> @gap.Reason
+                                        @if (!string.IsNullOrEmpty(gap.SuggestedAction))
+                                        {
+                                            <br /><em class="text-muted small">Suggested: @gap.SuggestedAction</em>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">
+            <h5>No results found</h5>
+            <p class="mb-0">We couldn't find data for the address "@Model.Address". Please check the address and try again.</p>
+        </div>
+    }
+</div>
+
+@functions {
+    string GetHazardClass(string zone) => zone.ToLower() switch
+    {
+        "high" => "text-danger fw-bold",
+        "medium" => "text-warning fw-bold",
+        "low" => "text-success",
+        _ => ""
+    };
+
+    string GetLiquefactionClass(string category) => category.ToUpper() switch
+    {
+        "TC3" => "text-danger fw-bold",
+        "TC2" => "text-warning fw-bold",
+        "TC1" => "text-success",
+        _ => ""
+    };
+
+    string GetGapClass(MaxPayroll.SiteEvaluator.Models.GapSeverity severity) => severity switch
+    {
+        MaxPayroll.SiteEvaluator.Models.GapSeverity.Critical => "text-danger",
+        MaxPayroll.SiteEvaluator.Models.GapSeverity.High => "text-warning",
+        MaxPayroll.SiteEvaluator.Models.GapSeverity.Medium => "text-info",
+        _ => "text-muted"
+    };
+}

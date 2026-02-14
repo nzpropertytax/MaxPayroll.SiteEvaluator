@@ -38,9 +38,6 @@
     <PackageReference Include="NetTopologySuite.IO.GeoJSON" Version="4.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Reference to main Website project for shared services and auth -->
-    <ProjectReference Include="..\MaxPayroll.Website\MaxPayroll.Website.csproj" />
-  </ItemGroup>
+  <!-- NO reference to Website - this is a standalone RCL module -->
 
 </Project>

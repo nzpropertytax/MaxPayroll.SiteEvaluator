@@ -1,0 +1,278 @@
+@page "/SiteEvaluator"
+@model MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.IndexModel
+
+@{
+    ViewData["Title"] = "Site Evaluator - NZ Property Due Diligence";
+    ViewData["Description"] = "Comprehensive site evaluation and due diligence reports for New Zealand properties. Zoning, hazards, geotechnical data, and infrastructure information in one place.";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <h1 class="display-4 mb-4">??? Site Evaluator</h1>
+            <p class="lead text-muted mb-5">
+                Comprehensive due diligence for New Zealand property sites.
+                Enter an address to get zoning, hazards, geotechnical data, and infrastructure information.
+            </p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <form method="get" asp-page="/SiteEvaluator/Search" id="searchForm">
+                        <div class="mb-3">
+                            <label for="address" class="form-label fw-bold">Property Address</label>
+                            <div class="position-relative">
+                                <input type="text" 
+                                       class="form-control form-control-lg" 
+                                       id="address" 
+                                       name="address" 
+                                       placeholder="Start typing an address..."
+                                       autocomplete="off"
+                                       required />
+                                <div id="addressSuggestions" class="address-suggestions"></div>
+                            </div>
+                            <div class="form-text">Enter a New Zealand street address</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            ?? Search Site
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5 pt-4">
+        <div class="col-md-4 text-center mb-4">
+            <div class="display-6 mb-2">??</div>
+            <h5>Zoning & Planning</h5>
+            <p class="text-muted small">District plan zones, height limits, coverage, setbacks, and permitted activities.</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="display-6 mb-2">??</div>
+            <h5>Natural Hazards</h5>
+            <p class="text-muted small">Flood zones, liquefaction risk, seismic hazards, and contamination status.</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="display-6 mb-2">??</div>
+            <h5>Geotechnical Data</h5>
+            <p class="text-muted small">Nearby boreholes, CPTs, and geotechnical reports from NZGD.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 text-center mb-4">
+            <div class="display-6 mb-2">??</div>
+            <h5>Infrastructure</h5>
+            <p class="text-muted small">Water, wastewater, stormwater, power, fibre, and gas availability.</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="display-6 mb-2">??</div>
+            <h5>Land & Title</h5>
+            <p class="text-muted small">Title reference, legal description, easements, and covenants from LINZ.</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="display-6 mb-2">??</div>
+            <h5>PDF Reports</h5>
+            <p class="text-muted small">Professional reports ready for clients, councils, or internal use.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .address-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 0.375rem 0.375rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+    
+    .address-suggestions.show {
+        display: block;
+    }
+    
+    .address-suggestion {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.15s;
+    }
+    
+    .address-suggestion:last-child {
+        border-bottom: none;
+    }
+    
+    .address-suggestion:hover,
+    .address-suggestion.active {
+        background-color: #f8f9fa;
+    }
+    
+    .address-suggestion .address-main {
+        font-weight: 500;
+        color: #212529;
+    }
+    
+    .address-suggestion .address-secondary {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .address-suggestions .loading {
+        padding: 1rem;
+        text-align: center;
+        color: #6c757d;
+    }
+    
+    .address-suggestions .no-results {
+        padding: 1rem;
+        text-align: center;
+        color: #6c757d;
+        font-style: italic;
+    }
+</style>
+
+<script>
+(function() {
+    const addressInput = document.getElementById('address');
+    const suggestionsContainer = document.getElementById('addressSuggestions');
+    let debounceTimer;
+    let currentIndex = -1;
+    let suggestions = [];
+
+    function debounce(func, wait) {
+        return function(...args) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    async function fetchSuggestions(query) {
+        if (query.length < 3) {
+            hideSuggestions();
+            return;
+        }
+
+        suggestionsContainer.innerHTML = '<div class="loading"><i class="fa fa-spinner fa-spin"></i> Searching...</div>';
+        suggestionsContainer.classList.add('show');
+
+        try {
+            const response = await fetch('/api/siteevaluator/address/autocomplete?q=' + encodeURIComponent(query));
+            if (!response.ok) throw new Error('API error');
+            
+            suggestions = await response.json();
+            renderSuggestions();
+        } catch (error) {
+            console.error('Autocomplete error:', error);
+            suggestionsContainer.innerHTML = '<div class="no-results">Unable to load suggestions</div>';
+        }
+    }
+
+    function renderSuggestions() {
+        if (suggestions.length === 0) {
+            suggestionsContainer.innerHTML = '<div class="no-results">No addresses found</div>';
+            return;
+        }
+
+        suggestionsContainer.innerHTML = suggestions.map((s, i) => {
+            const main = escapeHtml(s.fullAddress);
+            const secondary = [s.suburb, s.city].filter(Boolean).map(escapeHtml).join(', ');
+            return `
+                <div class="address-suggestion" data-index="${i}">
+                    <div class="address-main">${main}</div>
+                    ${secondary ? `<div class="address-secondary">${secondary}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+
+        suggestionsContainer.querySelectorAll('.address-suggestion').forEach(el => {
+            el.addEventListener('click', () => selectSuggestion(parseInt(el.dataset.index)));
+        });
+
+        currentIndex = -1;
+    }
+
+    function selectSuggestion(index = 0) {
+        if (index >= 0 && index < suggestions.length) {
+            addressInput.value = suggestions[index].fullAddress;
+            hideSuggestions();
+        }
+    }
+
+    function hideSuggestions() {
+        suggestionsContainer.classList.remove('show');
+        currentIndex = -1;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    addressInput.addEventListener('input', debounce(function() {
+        fetchSuggestions(this.value.trim());
+    }, 300));
+
+    addressInput.addEventListener('keydown', function(e) {
+        if (!suggestionsContainer.classList.contains('show')) return;
+
+        const items = suggestionsContainer.querySelectorAll('.address-suggestion');
+        
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                currentIndex = Math.min(currentIndex + 1, items.length - 1);
+                updateActiveItem(items);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                currentIndex = Math.max(currentIndex - 1, -1);
+                updateActiveItem(items);
+                break;
+            case 'Enter':
+                if (currentIndex >= 0) {
+                    e.preventDefault();
+                    selectSuggestion(currentIndex);
+                }
+                break;
+            case 'Escape':
+                hideSuggestions();
+                break;
+        }
+    });
+
+    function updateActiveItem(items) {
+        items.forEach((item, i) => {
+            item.classList.toggle('active', i === currentIndex);
+            if (i === currentIndex) {
+                item.scrollIntoView({ block: 'nearest' });
+            }
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!addressInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+            hideSuggestions();
+        }
+    });
+
+    addressInput.addEventListener('focus', function() {
+        if (suggestions.length > 0 && this.value.length >= 3) {
+            suggestionsContainer.classList.add('show');
+        }
+    });
+})();
+</script>

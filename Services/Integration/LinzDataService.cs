@@ -105,6 +105,41 @@ public class LinzDataService : ILinzDataService
             return null;
         }
     }
+
+    public async Task<List<AddressSuggestion>> GetAddressSuggestionsAsync(string query, CancellationToken ct = default)
+    {
+        try
+        {
+            // Use LINZ Address API for autocomplete suggestions
+            var encodedQuery = Uri.EscapeDataString(query);
+            var response = await _httpClient.GetAsync($"/services/api/v1/geocode?q={encodedQuery}&count=10", ct);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("LINZ autocomplete failed: {StatusCode}", response.StatusCode);
+                return new List<AddressSuggestion>();
+            }
+            
+            var result = await response.Content.ReadFromJsonAsync<LinzGeocodeResponse>(ct);
+            
+            if (result?.Results == null)
+                return new List<AddressSuggestion>();
+
+            return result.Results.Select(r => new AddressSuggestion
+            {
+                FullAddress = r.FullAddress ?? "",
+                Suburb = r.Suburb,
+                City = r.City,
+                Latitude = r.Latitude,
+                Longitude = r.Longitude
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting address suggestions for: {Query}", query);
+            return new List<AddressSuggestion>();
+        }
+    }
 }
 
 // LINZ API response models

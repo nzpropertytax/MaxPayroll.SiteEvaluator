@@ -1,16 +1,15 @@
 using MaxPayroll.SiteEvaluator.Models;
 using MaxPayroll.SiteEvaluator.Services.Integration;
-using MaxPayroll.Website.Services;
 
 namespace MaxPayroll.SiteEvaluator.Services;
 
 /// <summary>
 /// Main site search service implementation.
-/// Uses the platform's ISiteDatabaseRepository for storage.
+/// Uses self-contained ISiteEvaluatorRepository for storage.
 /// </summary>
 public class SiteSearchService : ISiteSearchService
 {
-    private readonly ISiteDatabaseRepository _siteRepo;
+    private readonly ISiteEvaluatorRepository _repository;
     private readonly ILinzDataService _linzService;
     private readonly INzgdDataService _nzgdService;
     private readonly IEnumerable<ICouncilDataService> _councilServices;
@@ -18,10 +17,8 @@ public class SiteSearchService : ISiteSearchService
     private readonly INiwaDataService _niwaService;
     private readonly ILogger<SiteSearchService> _logger;
 
-    private const string EvaluationsCollection = "site_evaluations";
-
     public SiteSearchService(
-        ISiteDatabaseRepository siteRepo,
+        ISiteEvaluatorRepository repository,
         ILinzDataService linzService,
         INzgdDataService nzgdService,
         IEnumerable<ICouncilDataService> councilServices,
@@ -29,7 +26,7 @@ public class SiteSearchService : ISiteSearchService
         INiwaDataService niwaService,
         ILogger<SiteSearchService> logger)
     {
-        _siteRepo = siteRepo;
+        _repository = repository;
         _linzService = linzService;
         _nzgdService = nzgdService;
         _councilServices = councilServices;
@@ -69,8 +66,8 @@ public class SiteSearchService : ISiteSearchService
         evaluation.Completeness = CalculateCompleteness(evaluation);
         evaluation.Status = DetermineStatus(evaluation);
 
-        // Step 5: Save to LiteDB
-        await _siteRepo.InsertAsync(EvaluationsCollection, evaluation);
+        // Step 5: Save to database
+        await _repository.InsertAsync(evaluation);
 
         _logger.LogInformation("Site search completed for {Address}, Id: {Id}", address, evaluation.Id);
         
@@ -123,7 +120,7 @@ public class SiteSearchService : ISiteSearchService
         evaluation.Completeness = CalculateCompleteness(evaluation);
         evaluation.Status = DetermineStatus(evaluation);
 
-        await _siteRepo.InsertAsync(EvaluationsCollection, evaluation);
+        await _repository.InsertAsync(evaluation);
 
         return evaluation;
     }
@@ -146,14 +143,14 @@ public class SiteSearchService : ISiteSearchService
         evaluation.Completeness = CalculateCompleteness(evaluation);
         evaluation.Status = DetermineStatus(evaluation);
 
-        await _siteRepo.InsertAsync(EvaluationsCollection, evaluation);
+        await _repository.InsertAsync(evaluation);
 
         return evaluation;
     }
 
     public async Task<SiteEvaluation> RefreshDataAsync(string evaluationId, IEnumerable<string> sections, CancellationToken ct = default)
     {
-        var evaluation = await _siteRepo.GetByIdAsync<SiteEvaluation>(EvaluationsCollection, evaluationId);
+        var evaluation = await _repository.GetByIdAsync<SiteEvaluation>(evaluationId);
         
         if (evaluation == null)
         {
@@ -186,25 +183,25 @@ public class SiteSearchService : ISiteSearchService
         evaluation.Completeness = CalculateCompleteness(evaluation);
         evaluation.Status = DetermineStatus(evaluation);
 
-        await _siteRepo.UpdateAsync(evaluation);
+        await _repository.UpdateAsync(evaluation);
 
         return evaluation;
     }
 
     public async Task<SiteEvaluation?> GetEvaluationAsync(string evaluationId, CancellationToken ct = default)
     {
-        return await _siteRepo.GetByIdAsync<SiteEvaluation>(EvaluationsCollection, evaluationId);
+        return await _repository.GetByIdAsync<SiteEvaluation>(evaluationId);
     }
 
     public async Task<IEnumerable<SiteEvaluation>> GetUserEvaluationsAsync(string userId, CancellationToken ct = default)
     {
-        var all = await _siteRepo.FindAsync<SiteEvaluation>(EvaluationsCollection, _ => true);
+        var all = await _repository.FindAsync<SiteEvaluation>(_ => true);
         return all.Where(e => e.UserId == userId).OrderByDescending(e => e.CreatedDate);
     }
 
     public async Task<bool> DeleteEvaluationAsync(string evaluationId, CancellationToken ct = default)
     {
-        return await _siteRepo.DeleteAsync(EvaluationsCollection, evaluationId);
+        return await _repository.DeleteAsync(evaluationId);
     }
 
     // === Private helper methods ===

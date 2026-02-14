@@ -1,23 +1,20 @@
 using MaxPayroll.SiteEvaluator.Models;
-using MaxPayroll.Website.Services;
 
 namespace MaxPayroll.SiteEvaluator.Services;
 
 /// <summary>
-/// Subscription and billing service using platform's LiteDB repository.
+/// Subscription and billing service using self-contained repository.
 /// </summary>
 public class SubscriptionService : ISubscriptionService
 {
-    private readonly ISiteDatabaseRepository _siteRepo;
+    private readonly ISiteEvaluatorRepository _repository;
     private readonly ILogger<SubscriptionService> _logger;
     
-    private const string SubscriptionsCollection = "site_evaluator_subscriptions";
-    private const string UsageCollection = "site_evaluator_usage";
     private const decimal PayPerSearchPrice = 25.00m;
 
-    public SubscriptionService(ISiteDatabaseRepository siteRepo, ILogger<SubscriptionService> logger)
+    public SubscriptionService(ISiteEvaluatorRepository repository, ILogger<SubscriptionService> logger)
     {
-        _siteRepo = siteRepo;
+        _repository = repository;
         _logger = logger;
     }
 
@@ -31,7 +28,7 @@ public class SubscriptionService : ISubscriptionService
             subscription.SearchesThisMonth = 0;
             subscription.ReportsThisMonth = 0;
             subscription.UsageResetDate = DateTime.UtcNow.AddMonths(1);
-            await _siteRepo.UpdateAsync(subscription);
+            await _repository.UpdateAsync(subscription);
         }
 
         var searchLimit = SubscriptionTierConfig.GetSearchesPerMonth(subscription.Tier);
@@ -51,7 +48,7 @@ public class SubscriptionService : ISubscriptionService
         // Increment usage counter
         subscription.SearchesThisMonth++;
         subscription.LastSearchDate = DateTime.UtcNow;
-        await _siteRepo.UpdateAsync(subscription);
+        await _repository.UpdateAsync(subscription);
 
         // Create usage record
         var usageRecord = new SearchUsageRecord
@@ -63,15 +60,15 @@ public class SubscriptionService : ISubscriptionService
             AmountCharged = subscription.Tier == SubscriptionTier.Free ? PayPerSearchPrice : null
         };
 
-        await _siteRepo.InsertAsync(UsageCollection, usageRecord);
+        await _repository.InsertAsync(usageRecord);
 
         _logger.LogInformation("Recorded search usage for user {UserId}, evaluation {EvaluationId}", userId, evaluationId);
     }
 
     public async Task<SiteEvaluatorSubscription?> GetSubscriptionAsync(string userId, CancellationToken ct = default)
     {
-        var all = await _siteRepo.FindAsync<SiteEvaluatorSubscription>(SubscriptionsCollection, _ => true);
-        return all.FirstOrDefault(s => s.UserId == userId);
+        var all = await _repository.FindAsync<SiteEvaluatorSubscription>(s => s.UserId == userId);
+        return all.FirstOrDefault();
     }
 
     public async Task<bool> ProcessPayPerSearchAsync(string userId, CancellationToken ct = default)
@@ -87,7 +84,7 @@ public class SubscriptionService : ISubscriptionService
         // In a real implementation, this would integrate with Stripe
         _logger.LogInformation("Processing pay-per-search payment of ${Price} for user {UserId}", PayPerSearchPrice, userId);
         
-        // TODO: Implement Stripe payment processing via platform billing service
+        // TODO: Implement Stripe payment processing
 
         return true;
     }
@@ -121,7 +118,7 @@ public class SubscriptionService : ISubscriptionService
                 UserId = userId,
                 Tier = SubscriptionTier.Free
             };
-            await _siteRepo.InsertAsync(SubscriptionsCollection, subscription);
+            await _repository.InsertAsync(subscription);
         }
 
         return subscription;
