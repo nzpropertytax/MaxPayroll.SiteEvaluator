@@ -42,6 +42,7 @@ For engineers and users of the Site Evaluator:
 |----------|-------------|
 | [Site Evaluation Wizard Guide](user-guides/Site-Evaluation-Wizard-Guide.md) | Complete guide to the 8-step wizard |
 | [Engineering Report Guide](user-guides/Engineering-Report-Guide.md) | Using reports for client deliverables |
+| [Sample Engineering Report](user-guides/Sample-Engineering-Report.md) | **NEW** — Full example in consultancy format |
 | [Data Sources Reference](user-guides/Data-Sources-Reference.md) | Understanding data sources and accuracy |
 
 ### API Implementation Guides
@@ -65,6 +66,7 @@ For developers extending the Site Evaluator:
 | Document | Description |
 |----------|-------------|
 | [Development Overview](development/README.md) | Project structure and services |
+| [Service Implementation Guide](development/Service-Implementation-Guide.md) | Adding new data services |
 | [AI Learning Model Guide](development/AI-Learning-Model-Guide.md) | AI-powered recommendations |
 
 ---
@@ -144,6 +146,21 @@ MaxPayroll.SiteEvaluator/
     ??? css/
     ??? js/
 ```
+
+---
+
+## ?? Report Types
+
+The Site Evaluator generates professional PDF reports:
+
+| Report Type | Content | Use Case |
+|-------------|---------|----------|
+| **Full Report** | All sections, detailed data | Client deliverables |
+| **Summary Report** | Key findings only | Quick screening |
+| **Geotech Brief** | Geotechnical focus | Investigation planning |
+| **Due Diligence Pack** | Full report + appendices | Legal due diligence |
+
+?? See [Sample Engineering Report](user-guides/Sample-Engineering-Report.md) for a complete example.
 
 ---
 

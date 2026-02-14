@@ -1,4 +1,4 @@
-# Development Documentation ???
+# Development Documentation ??
 
 Technical documentation for developers working on Site Evaluator.
 
@@ -8,12 +8,27 @@ Technical documentation for developers working on Site Evaluator.
 
 | Document | Description |
 |----------|-------------|
-| [AI Learning Model Guide](AI-Learning-Model-Guide.md) | AI-powered recommendations and learning |
+| [Job Architecture Guide](Job-Architecture-Guide.md) | **NEW** — Job-based data model and workflow |
 | [Service Implementation Guide](Service-Implementation-Guide.md) | Adding new data services |
+| [AI Learning Model Guide](AI-Learning-Model-Guide.md) | AI-powered recommendations and learning |
 
 ---
 
 ## Quick Overview
+
+### Core Architecture
+
+The Site Evaluator uses a **Job-based architecture**:
+
+```
+EvaluationJob ? PropertyLocation ? Cached Data
+     ?
+  JobReport (PDF)
+```
+
+- **Job** = One engagement/request (can bill separately)
+- **Location** = Shared property data (cached)
+- **Report** = Generated PDF for client delivery
 
 ### Project Structure
 
@@ -40,7 +55,9 @@ MaxPayroll.SiteEvaluator/
 
 | Service | Purpose |
 |---------|---------|
-| `SiteSearchService` | Main orchestration service |
+| `JobService` | **NEW** — Job management and workflow |
+| `LocationService` | **NEW** — Property locations with caching |
+| `SiteSearchService` | Legacy search orchestration |
 | `LinzDataService` | LINZ address/property lookup |
 | `CouncilGisService` | Council GIS data |
 | `NzgdDataService` | Geotechnical database |

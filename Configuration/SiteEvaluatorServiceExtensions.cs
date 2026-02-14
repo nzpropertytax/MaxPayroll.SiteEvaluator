@@ -24,6 +24,8 @@ public static class SiteEvaluatorServiceExtensions
         services.AddSingleton<ISiteEvaluatorRepository, SiteEvaluatorRepository>();
 
         // Core services
+        services.AddScoped<IJobService, JobService>();
+        services.AddScoped<ILocationService, LocationService>();
         services.AddScoped<ISiteSearchService, SiteSearchService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
