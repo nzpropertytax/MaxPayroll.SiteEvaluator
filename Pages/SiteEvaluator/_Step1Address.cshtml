@@ -1,0 +1,324 @@
+@model MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.EvaluationWizardModel
+
+<!-- Step 1: Address Entry & Intended Use -->
+<div class="row">
+    <!-- Left Column: Address -->
+    <div class="col-lg-7">
+        <div class="wizard-card">
+            <div class="wizard-card-header">
+                <div class="icon bg-primary">
+                    <i class="fa fa-map-marker-alt"></i>
+                </div>
+                <div>
+                    <h3>Enter Property Address</h3>
+                    <p class="text-muted mb-0">Search by address, title reference, or coordinates</p>
+                </div>
+            </div>
+
+            <form method="post" asp-page-handler="SearchAddress" id="addressForm">
+                <!-- Search Type Tabs -->
+                <ul class="nav nav-tabs mb-4" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="address-tab" data-bs-toggle="tab" data-bs-target="#addressSearch" type="button" role="tab">
+                            <i class="fa fa-map-marker-alt me-1"></i> Address
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="title-tab" data-bs-toggle="tab" data-bs-target="#titleSearch" type="button" role="tab">
+                            <i class="fa fa-file-alt me-1"></i> Title Reference
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="coords-tab" data-bs-toggle="tab" data-bs-target="#coordsSearch" type="button" role="tab">
+                            <i class="fa fa-crosshairs me-1"></i> Coordinates
+                        </button>
+                    </li>
+                </ul>
+
+                <input type="hidden" asp-for="SearchType" id="searchType" value="address" />
+
+                <div class="tab-content">
+                    <!-- Address Search -->
+                    <div class="tab-pane fade show active" id="addressSearch" role="tabpanel">
+                        <div class="mb-3">
+                            <label for="address" class="form-label fw-semibold">
+                                Street Address <span class="text-danger">*</span>
+                            </label>
+                            <div class="address-input-container">
+                                <input type="text" 
+                                       class="form-control form-control-lg" 
+                                       id="address" 
+                                       name="Address"
+                                       value="@Model.Address"
+                                       placeholder="Start typing a New Zealand address..."
+                                       autocomplete="off"
+                                       required />
+                                <div id="addressSuggestions" class="address-suggestions"></div>
+                            </div>
+                            <div class="form-text">
+                                <i class="fa fa-info-circle me-1"></i>
+                                Enter a street address - suggestions will appear as you type
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Title Search -->
+                    <div class="tab-pane fade" id="titleSearch" role="tabpanel">
+                        <div class="mb-3">
+                            <label for="titleReference" class="form-label fw-semibold">
+                                Title Reference
+                            </label>
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="titleReference" 
+                                   name="TitleReference"
+                                   value="@Model.TitleReference"
+                                   placeholder="e.g., CB123/456" />
+                            <div class="form-text">
+                                <i class="fa fa-info-circle me-1"></i>
+                                Enter a LINZ title reference (e.g., CB123/456 or NA789/123)
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coordinates Search -->
+                    <div class="tab-pane fade" id="coordsSearch" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="latitude" class="form-label fw-semibold">Latitude</label>
+                                <input type="number" 
+                                       step="any"
+                                       class="form-control form-control-lg" 
+                                       id="latitude" 
+                                       name="Latitude"
+                                       value="@Model.Latitude"
+                                       placeholder="-43.532" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="longitude" class="form-label fw-semibold">Longitude</label>
+                                <input type="number" 
+                                       step="any"
+                                       class="form-control form-control-lg" 
+                                       id="longitude" 
+                                       name="Longitude"
+                                       value="@Model.Longitude"
+                                       placeholder="172.636" />
+                            </div>
+                        </div>
+                        <div class="form-text">
+                            <i class="fa fa-info-circle me-1"></i>
+                            Enter WGS84 coordinates (decimal degrees)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Intended Use Section (collapsible for more details) -->
+                <div class="mt-4 pt-4 border-top">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="fa fa-bullseye text-primary me-2"></i>Intended Use
+                        </h5>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#developmentDetails">
+                            <i class="fa fa-plus me-1"></i> Development Details
+                        </button>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Property Use <span class="text-danger">*</span></label>
+                            <select class="form-select" name="IntendedUseCategory" id="intendedUseCategory" required>
+                                <option value="Residential" selected>?? Residential</option>
+                                <option value="Commercial">?? Commercial</option>
+                                <option value="Industrial">?? Industrial</option>
+                                <option value="MixedUse">?? Mixed Use</option>
+                                <option value="Rural">?? Rural / Agricultural</option>
+                                <option value="Community">?? Community / Education</option>
+                                <option value="OpenSpace">?? Open Space / Recreation</option>
+                                <option value="Other">?? Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Purpose</label>
+                            <select class="form-select" name="EvaluationPurpose" id="evaluationPurpose">
+                                <option value="Purchase" selected>?? Purchase / Acquisition</option>
+                                <option value="Sale">?? Sale / Listing</option>
+                                <option value="Development">??? Development</option>
+                                <option value="Subdivision">?? Subdivision</option>
+                                <option value="DueDiligence">?? Due Diligence</option>
+                                <option value="ResourceConsent">?? Resource Consent</option>
+                                <option value="Insurance">??? Insurance / Risk</option>
+                                <option value="Valuation">?? Valuation</option>
+                                <option value="Other">?? Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Specific Use (dynamic based on category) -->
+                    <div class="mb-3" id="specificUseContainer">
+                        <label class="form-label">Specific Use</label>
+                        <input type="text" class="form-control" name="SpecificUse" id="specificUse" 
+                               placeholder="e.g., Single dwelling, Warehouse, Retail shop..." />
+                        <div class="form-text">Optional: Describe the specific intended use</div>
+                    </div>
+
+                    <!-- Development Details (collapsed by default) -->
+                    <div class="collapse" id="developmentDetails">
+                        <div class="card card-body bg-light mt-3">
+                            <h6 class="text-primary mb-3">
+                                <i class="fa fa-drafting-compass me-2"></i>Development Parameters
+                            </h6>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="IsNewDevelopment" id="isNewDevelopment" value="true">
+                                <label class="form-check-label" for="isNewDevelopment">
+                                    This is a <strong>new development</strong> (not existing use)
+                                </label>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Proposed Height (m)</label>
+                                    <input type="number" step="0.1" class="form-control" name="ProposedHeight" 
+                                           placeholder="e.g., 8.5" />
+                                    <div class="form-text">Maximum building height</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Site Coverage (%)</label>
+                                    <input type="number" step="1" min="0" max="100" class="form-control" name="ProposedCoverage" 
+                                           placeholder="e.g., 40" />
+                                    <div class="form-text">Building footprint as % of site</div>
+                                </div>
+                            </div>
+
+                            <div class="row" id="residentialParams">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Number of Units/Dwellings</label>
+                                    <input type="number" min="1" class="form-control" name="ProposedUnits" 
+                                           placeholder="e.g., 6" />
+                                </div>
+                            </div>
+
+                            <div class="row" id="commercialParams" style="display: none;">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Gross Floor Area (m²)</label>
+                                    <input type="number" step="1" class="form-control" name="ProposedGfa" 
+                                           placeholder="e.g., 500" />
+                                </div>
+                            </div>
+
+                            <div class="mb-0">
+                                <label class="form-label">Additional Notes</label>
+                                <textarea class="form-control" name="IntendedUseNotes" rows="2" 
+                                          placeholder="Any other relevant information about the intended use..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="wizard-nav">
+                    <div>
+                        <!-- Empty left side for first step -->
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fa fa-search me-2"></i>Search Property
+                        <i class="fa fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Column: Quick Info -->
+    <div class="col-lg-5">
+        <!-- Why Intended Use Matters -->
+        <div class="card border-0 bg-primary bg-opacity-10 mb-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fa fa-lightbulb text-warning me-2"></i>Why Intended Use Matters
+                </h5>
+                <p class="card-text small mb-2">
+                    Telling us your intended use helps us:
+                </p>
+                <ul class="small mb-0">
+                    <li><strong>Check zoning compatibility</strong> - Is your use permitted?</li>
+                    <li><strong>Highlight relevant rules</strong> - Height, setbacks, coverage</li>
+                    <li><strong>Prioritize hazard data</strong> - What risks matter most</li>
+                    <li><strong>Flag potential issues</strong> - Early warning of constraints</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Quick Tips -->
+        <div class="card border-0 bg-white shadow-sm mb-3">
+            <div class="card-body text-center py-4">
+                <div class="display-6 mb-2">??</div>
+                <h6>Address Search</h6>
+                <p class="text-muted small mb-0">Best for residential properties. Autocomplete helps find exact addresses.</p>
+            </div>
+        </div>
+        <div class="card border-0 bg-white shadow-sm mb-3">
+            <div class="card-body text-center py-4">
+                <div class="display-6 mb-2">??</div>
+                <h6>Title Reference</h6>
+                <p class="text-muted small mb-0">Use when you have a LINZ title number. Good for subdivisions.</p>
+            </div>
+        </div>
+        <div class="card border-0 bg-white shadow-sm">
+            <div class="card-body text-center py-4">
+                <div class="display-6 mb-2">??</div>
+                <h6>Coordinates</h6>
+                <p class="text-muted small mb-0">For undeveloped land or when you have GPS coordinates.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update search type when tab changes
+    const tabElements = document.querySelectorAll('[data-bs-toggle="tab"]');
+    tabElements.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function(e) {
+            const searchType = e.target.id.replace('-tab', '');
+            document.getElementById('searchType').value = searchType;
+        });
+    });
+
+    // Toggle development parameters based on use category
+    const useCategorySelect = document.getElementById('intendedUseCategory');
+    const residentialParams = document.getElementById('residentialParams');
+    const commercialParams = document.getElementById('commercialParams');
+    const specificUseInput = document.getElementById('specificUse');
+
+    const specificUsePlaceholders = {
+        'Residential': 'e.g., Single dwelling, Townhouses, Apartments...',
+        'Commercial': 'e.g., Retail shop, Office, Restaurant, Hotel...',
+        'Industrial': 'e.g., Warehouse, Manufacturing, Logistics...',
+        'MixedUse': 'e.g., Retail with apartments above...',
+        'Rural': 'e.g., Dairy farm, Vineyard, Lifestyle block...',
+        'Community': 'e.g., School, Church, Community centre...',
+        'OpenSpace': 'e.g., Park, Sports field, Reserve...',
+        'Other': 'Describe the intended use...'
+    };
+
+    useCategorySelect.addEventListener('change', function() {
+        const category = this.value;
+        
+        // Update placeholder
+        specificUseInput.placeholder = specificUsePlaceholders[category] || 'Describe the intended use...';
+        
+        // Show/hide relevant parameter sections
+        if (category === 'Residential' || category === 'MixedUse') {
+            residentialParams.style.display = '';
+            commercialParams.style.display = 'none';
+        } else if (category === 'Commercial' || category === 'Industrial') {
+            residentialParams.style.display = 'none';
+            commercialParams.style.display = '';
+        } else {
+            residentialParams.style.display = 'none';
+            commercialParams.style.display = 'none';
+        }
+    });
+});
+</script>

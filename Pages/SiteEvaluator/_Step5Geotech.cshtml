@@ -1,0 +1,264 @@
+@model MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.EvaluationWizardModel
+@{
+    var evaluation = Model.WizardState.Evaluation;
+    var geotech = evaluation?.Geotech;
+    var hasData = geotech != null;
+    var hasBoreholes = geotech?.NearbyBoreholes?.Count > 0;
+    var hasCpts = geotech?.NearbyCpts?.Count > 0;
+    var hasReports = geotech?.NearbyReports?.Count > 0;
+}
+
+<!-- Step 5: Geotechnical Data -->
+<div class="wizard-card">
+    <div class="wizard-card-header">
+        <div class="icon" style="background: #795548;">
+            <i class="fa fa-layer-group"></i>
+        </div>
+        <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>Geotechnical Data</h3>
+                    <p class="text-muted mb-0">Nearby boreholes, CPTs, and geotechnical reports from NZGD</p>
+                </div>
+                @if (hasBoreholes || hasCpts || hasReports)
+                {
+                    <span class="status-badge complete">
+                        <i class="fa fa-check me-1"></i> Data Found
+                    </span>
+                }
+                else if (hasData)
+                {
+                    <span class="status-badge partial">
+                        <i class="fa fa-exclamation me-1"></i> Limited Data
+                    </span>
+                }
+                else
+                {
+                    <span class="status-badge missing">
+                        <i class="fa fa-exclamation-circle me-1"></i> No Data
+                    </span>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (hasData)
+    {
+        <!-- Summary Stats -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="text-center p-3 bg-light rounded">
+                    <div class="display-6 text-primary">@(geotech.NearbyBoreholes?.Count ?? 0)</div>
+                    <div class="small text-muted">Boreholes</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center p-3 bg-light rounded">
+                    <div class="display-6 text-success">@(geotech.NearbyCpts?.Count ?? 0)</div>
+                    <div class="small text-muted">CPT Tests</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center p-3 bg-light rounded">
+                    <div class="display-6 text-info">@(geotech.NearbyReports?.Count ?? 0)</div>
+                    <div class="small text-muted">Reports</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Investigation Recommendation -->
+        @if (geotech.GeotechInvestigationRequired == true)
+        {
+            <div class="alert alert-warning">
+                <i class="fa fa-exclamation-triangle me-2"></i>
+                <strong>Geotechnical Investigation Recommended</strong>
+                <p class="mb-0 mt-1 small">@(geotech.RecommendedInvestigation ?? "Limited nearby data. Site-specific investigation may be required.")</p>
+            </div>
+        }
+
+        <!-- Boreholes -->
+        @if (hasBoreholes)
+        {
+            <div class="data-section">
+                <h5><i class="fa fa-circle-notch me-2"></i>Nearby Boreholes</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Distance</th>
+                                <th>Depth</th>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var borehole in geotech.NearbyBoreholes.Take(10))
+                            {
+                                <tr>
+                                    <td><strong>@borehole.Id</strong></td>
+                                    <td>@borehole.DistanceMeters.ToString("0") m</td>
+                                    <td>@(borehole.Depth?.ToString("0.0") ?? "—") m</td>
+                                    <td>@(borehole.Date?.ToString("MMM yyyy") ?? "—")</td>
+                                    <td>@(borehole.Description?.Length > 30 ? borehole.Description.Substring(0, 30) + "..." : borehole.Description ?? "—")</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(borehole.SourceUrl))
+                                        {
+                                            <a href="@borehole.SourceUrl" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="fa fa-external-link-alt"></i>
+                                            </a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (geotech.NearbyBoreholes.Count > 10)
+                {
+                    <p class="text-muted small mt-2 mb-0">
+                        Showing 10 of @geotech.NearbyBoreholes.Count boreholes
+                    </p>
+                }
+            </div>
+        }
+
+        <!-- CPTs -->
+        @if (hasCpts)
+        {
+            <div class="data-section">
+                <h5><i class="fa fa-arrow-down me-2"></i>Nearby CPT Tests</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Distance</th>
+                                <th>Depth</th>
+                                <th>Date</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var cpt in geotech.NearbyCpts.Take(10))
+                            {
+                                <tr>
+                                    <td><strong>@cpt.Id</strong></td>
+                                    <td>@cpt.DistanceMeters.ToString("0") m</td>
+                                    <td>@(cpt.Depth?.ToString("0.0") ?? "—") m</td>
+                                    <td>@(cpt.Date?.ToString("MMM yyyy") ?? "—")</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(cpt.SourceUrl))
+                                        {
+                                            <a href="@cpt.SourceUrl" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="fa fa-external-link-alt"></i>
+                                            </a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <!-- Reports -->
+        @if (hasReports)
+        {
+            <div class="data-section">
+                <h5><i class="fa fa-file-pdf me-2"></i>Nearby Geotechnical Reports</h5>
+                @foreach (var report in geotech.NearbyReports.Take(5))
+                {
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div>
+                            <strong>@(report.Title.Length > 50 ? report.Title.Substring(0, 50) + "..." : report.Title)</strong>
+                            <div class="small text-muted">
+                                @(report.Author ?? "Unknown") • @(report.Date?.ToString("MMM yyyy") ?? "—") • @report.DistanceMeters.ToString("0")m away
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(report.SourceUrl))
+                        {
+                            <a href="@report.SourceUrl" target="_blank" class="btn btn-sm btn-outline-primary">
+                                View <i class="fa fa-external-link-alt ms-1"></i>
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- No Nearby Data -->
+        @if (!hasBoreholes && !hasCpts && !hasReports)
+        {
+            <div class="text-center py-4">
+                <div class="display-4 text-muted mb-3">??</div>
+                <h5>No Nearby Geotechnical Data</h5>
+                <p class="text-muted">
+                    There are no boreholes, CPTs, or reports within 500m of this location in the NZGD database.
+                    A site-specific geotechnical investigation will likely be required.
+                </p>
+            </div>
+        }
+
+        <!-- Data Source -->
+        @if (geotech.Source != null)
+        {
+            <div class="mt-4 p-3 bg-light rounded small">
+                <i class="fa fa-database me-1"></i>
+                <strong>Source:</strong> @geotech.Source.SourceName
+                <a href="https://www.nzgd.org.nz" target="_blank" class="ms-2">
+                    <i class="fa fa-external-link-alt"></i> Visit NZGD
+                </a>
+            </div>
+        }
+    }
+    else
+    {
+        <!-- No Data Available -->
+        <div class="text-center py-5">
+            <div class="display-4 text-muted mb-3">??</div>
+            <h5>Geotechnical Data Not Available</h5>
+            <p class="text-muted">
+                We couldn't retrieve geotechnical data from the NZ Geotechnical Database.
+            </p>
+            <form method="post" asp-page-handler="RefreshSection" class="mt-3">
+                <input type="hidden" name="section" value="geotech" />
+                <input type="hidden" name="currentStep" value="5" />
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fa fa-sync me-1"></i> Try Again
+                </button>
+            </form>
+        </div>
+    }
+
+    <!-- Navigation -->
+    <div class="wizard-nav">
+        <form method="post" asp-page-handler="PreviousStep" class="d-inline">
+            <input type="hidden" name="currentStep" value="5" />
+            <button type="submit" class="btn btn-outline-secondary btn-lg">
+                <i class="fa fa-arrow-left me-2"></i>Back
+            </button>
+        </form>
+        <div>
+            @if (hasData)
+            {
+                <form method="post" asp-page-handler="RefreshSection" class="d-inline me-2">
+                    <input type="hidden" name="section" value="geotech" />
+                    <input type="hidden" name="currentStep" value="5" />
+                    <button type="submit" class="btn btn-outline-secondary btn-lg">
+                        <i class="fa fa-sync me-1"></i> Refresh
+                    </button>
+                </form>
+            }
+            <form method="post" asp-page-handler="NextStep" class="d-inline">
+                <input type="hidden" name="currentStep" value="5" />
+                <button type="submit" class="btn btn-primary btn-lg">
+                    Next: Infrastructure
+                    <i class="fa fa-arrow-right ms-2"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

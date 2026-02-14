@@ -1,0 +1,259 @@
+@model MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.EvaluationWizardModel
+@{
+    var evaluation = Model.WizardState.Evaluation;
+    var climate = evaluation?.Climate;
+    var hasData = climate != null;
+}
+
+<!-- Step 7: Climate Data -->
+<div class="wizard-card">
+    <div class="wizard-card-header">
+        <div class="icon" style="background: #20c997;">
+            <i class="fa fa-cloud-sun-rain"></i>
+        </div>
+        <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>Climate Data</h3>
+                    <p class="text-muted mb-0">Wind zones, rainfall, and climate considerations (NZS 3604 / HIRDS)</p>
+                </div>
+                @if (hasData)
+                {
+                    <span class="status-badge complete">
+                        <i class="fa fa-check me-1"></i> Data Retrieved
+                    </span>
+                }
+                else
+                {
+                    <span class="status-badge missing">
+                        <i class="fa fa-exclamation-circle me-1"></i> No Data
+                    </span>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (hasData)
+    {
+        <div class="row">
+            <!-- Wind Zone -->
+            <div class="col-md-6 mb-3">
+                <div class="data-section h-100">
+                    <h5><i class="fa fa-wind me-2 text-info"></i>Wind Zone (NZS 3604)</h5>
+                    @if (!string.IsNullOrEmpty(climate.WindZone))
+                    {
+                        <div class="text-center py-3">
+                            <div class="display-4 mb-2">
+                                <i class="fa fa-wind"></i>
+                            </div>
+                            <h4 class="mb-1">@climate.WindZone</h4>
+                            <p class="text-muted small mb-0">
+                                @(climate.WindZone switch
+                                {
+                                    "Low" => "Sheltered areas, suitable for standard construction",
+                                    "Medium" => "Most urban areas, standard bracing required",
+                                    "High" => "Exposed areas, enhanced bracing required",
+                                    "Very High" => "Coastal/hilltop, specific engineering required",
+                                    "Extra High" => "Extreme exposure, specialist design required",
+                                    _ => "Check NZS 3604 for requirements"
+                                })
+                            </p>
+                            @if (climate.BasicWindSpeed != null)
+                            {
+                                <div class="mt-2 small text-muted">
+                                    Basic wind speed: @climate.BasicWindSpeed.Value.ToString("0") m/s
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">Wind zone data not available</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Rainfall -->
+            <div class="col-md-6 mb-3">
+                <div class="data-section h-100">
+                    <h5><i class="fa fa-cloud-showers-heavy me-2 text-primary"></i>Rainfall (HIRDS)</h5>
+                    @if (climate.Rainfall != null)
+                    {
+                        @if (climate.Rainfall.AnnualMean != null)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Mean Annual</span>
+                                <span class="data-value">@climate.Rainfall.AnnualMean.Value.ToString("0") mm</span>
+                            </div>
+                        }
+                        @if (climate.Rainfall.I10_60 != null)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">1hr / 10yr ARI</span>
+                                <span class="data-value">@climate.Rainfall.I10_60.Value.ToString("0.0") mm/hr</span>
+                            </div>
+                        }
+                        @if (climate.Rainfall.I100_60 != null)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">1hr / 100yr ARI</span>
+                                <span class="data-value">@climate.Rainfall.I100_60.Value.ToString("0.0") mm/hr</span>
+                            </div>
+                        }
+                        @if (climate.Rainfall.ClimateChangeFactors?.ContainsKey("2090_RCP85") == true)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Climate Change Factor (RCP8.5 2090)</span>
+                                <span class="data-value text-warning">x@climate.Rainfall.ClimateChangeFactors["2090_RCP85"].ToString("0.00")</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">Rainfall data not available</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Temperature -->
+            @if (climate.Temperature != null)
+            {
+                <div class="col-md-6 mb-3">
+                    <div class="data-section h-100">
+                        <h5><i class="fa fa-thermometer-half me-2 text-danger"></i>Temperature</h5>
+                        @if (climate.Temperature.MeanTemperature != null)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Mean Annual</span>
+                                <span class="data-value">@climate.Temperature.MeanTemperature.Value.ToString("0.0") C</span>
+                            </div>
+                        }
+                        @if (climate.Temperature.AnnualMeanMax != null)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Mean Max</span>
+                                <span class="data-value">@climate.Temperature.AnnualMeanMax.Value.ToString("0.0") C</span>
+                            </div>
+                        }
+                        @if (climate.Temperature.AnnualMeanMin != null)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Mean Min</span>
+                                <span class="data-value">@climate.Temperature.AnnualMeanMin.Value.ToString("0.0") C</span>
+                            </div>
+                        }
+                        @if (climate.Temperature.FrostDaysPerYear != null)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Frost Days/Year</span>
+                                <span class="data-value">@climate.Temperature.FrostDaysPerYear</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Climate Zone -->
+            @if (!string.IsNullOrEmpty(climate.ClimateZone))
+            {
+                <div class="col-md-6 mb-3">
+                    <div class="data-section h-100">
+                        <h5><i class="fa fa-globe me-2 text-success"></i>Climate Zone</h5>
+                        <div class="text-center py-3">
+                            <h4 class="mb-1">@climate.ClimateZone</h4>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Design Considerations -->
+        <div class="alert alert-info mt-3">
+            <h6 class="alert-heading">
+                <i class="fa fa-drafting-compass me-2"></i>Design Considerations
+            </h6>
+            <ul class="mb-0 small">
+                @if (climate.WindZone == "High" || climate.WindZone == "Very High" || climate.WindZone == "Extra High")
+                {
+                    <li>Enhanced bracing and tie-downs required per NZS 3604</li>
+                }
+                @if (climate.Rainfall?.I100_60 > 60)
+                {
+                    <li>High rainfall intensity - consider oversized gutters and downpipes</li>
+                }
+                @if (climate.Rainfall?.ClimateChangeFactors?.ContainsKey("2090_RCP85") == true && 
+                     climate.Rainfall.ClimateChangeFactors["2090_RCP85"] > 1.1)
+                {
+                    <li>Climate change factor significant - consider future-proofing stormwater design</li>
+                }
+                @if (climate.Temperature?.FrostDaysPerYear > 30)
+                {
+                    <li>Significant frost days - consider frost heave for foundations</li>
+                }
+                <li>Check E2/AS1 for weathertightness requirements based on wind zone</li>
+            </ul>
+        </div>
+
+        <!-- Data Source -->
+        @if (climate.Source != null)
+        {
+            <div class="mt-4 p-3 bg-light rounded small">
+                <i class="fa fa-database me-1"></i>
+                <strong>Source:</strong> @climate.Source.SourceName
+                @if (!string.IsNullOrEmpty(climate.Source.SourceUrl))
+                {
+                    <a href="@climate.Source.SourceUrl" target="_blank" class="ms-2">
+                        <i class="fa fa-external-link-alt"></i>
+                    </a>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <!-- No Data Available -->
+        <div class="text-center py-5">
+            <div class="display-4 text-muted mb-3"><i class="fa fa-cloud-sun"></i></div>
+            <h5>Climate Data Not Available</h5>
+            <p class="text-muted">
+                We couldn't retrieve climate data for this location.
+            </p>
+            <form method="post" asp-page-handler="RefreshSection" class="mt-3">
+                <input type="hidden" name="section" value="climate" />
+                <input type="hidden" name="currentStep" value="7" />
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fa fa-sync me-1"></i> Try Again
+                </button>
+            </form>
+        </div>
+    }
+
+    <!-- Navigation -->
+    <div class="wizard-nav">
+        <form method="post" asp-page-handler="PreviousStep" class="d-inline">
+            <input type="hidden" name="currentStep" value="7" />
+            <button type="submit" class="btn btn-outline-secondary btn-lg">
+                <i class="fa fa-arrow-left me-2"></i>Back
+            </button>
+        </form>
+        <div>
+            @if (hasData)
+            {
+                <form method="post" asp-page-handler="RefreshSection" class="d-inline me-2">
+                    <input type="hidden" name="section" value="climate" />
+                    <input type="hidden" name="currentStep" value="7" />
+                    <button type="submit" class="btn btn-outline-secondary btn-lg">
+                        <i class="fa fa-sync me-1"></i> Refresh
+                    </button>
+                </form>
+            }
+            <form method="post" asp-page-handler="NextStep" class="d-inline">
+                <input type="hidden" name="currentStep" value="7" />
+                <button type="submit" class="btn btn-primary btn-lg">
+                    Next: Summary
+                    <i class="fa fa-arrow-right ms-2"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

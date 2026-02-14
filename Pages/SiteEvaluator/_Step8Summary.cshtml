@@ -1,0 +1,314 @@
+@model MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.EvaluationWizardModel
+@{
+    var evaluation = Model.WizardState.Evaluation;
+    var address = Model.WizardState.Address;
+    var intendedUse = address?.IntendedUse;
+    var completeness = evaluation?.Completeness;
+    
+    // Calculate section status for summary
+    bool HasZoning = evaluation?.Zoning != null;
+    bool HasHazards = evaluation?.Hazards != null;
+    bool HasGeotech = evaluation?.Geotech != null;
+    bool HasInfra = evaluation?.Infrastructure != null;
+    bool HasClimate = evaluation?.Climate != null;
+    bool HasLand = evaluation?.Land != null;
+    
+    int completeSections = (HasZoning ? 1 : 0) + (HasHazards ? 1 : 0) + (HasGeotech ? 1 : 0) + 
+                          (HasInfra ? 1 : 0) + (HasClimate ? 1 : 0) + (HasLand ? 1 : 0);
+    int totalSections = 6;
+    int completionPercent = (completeSections * 100) / totalSections;
+}
+
+<!-- Step 8: Summary -->
+<div class="wizard-card">
+    <div class="wizard-card-header">
+        <div class="icon bg-success">
+            <i class="fa fa-check-circle"></i>
+        </div>
+        <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>Evaluation Summary</h3>
+                    <p class="text-muted mb-0">Review your site evaluation and generate reports</p>
+                </div>
+                <span class="badge bg-success fs-6">
+                    @completionPercent% Complete
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Property Overview -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="data-section">
+                <h5><i class="fa fa-map-marker-alt me-2 text-primary"></i>Property Details</h5>
+                <div class="data-item">
+                    <span class="data-label">Address</span>
+                    <span class="data-value">@(evaluation?.Location?.Address ?? address?.FullAddress ?? "—")</span>
+                </div>
+                @if (!string.IsNullOrEmpty(evaluation?.Location?.TitleReference))
+                {
+                    <div class="data-item">
+                        <span class="data-label">Title Reference</span>
+                        <span class="data-value">@evaluation.Location.TitleReference</span>
+                    </div>
+                }
+                @if (evaluation?.Location?.Latitude != 0 && evaluation?.Location?.Longitude != 0)
+                {
+                    <div class="data-item">
+                        <span class="data-label">Coordinates</span>
+                        <span class="data-value">@evaluation.Location.Latitude.ToString("0.00000"), @evaluation.Location.Longitude.ToString("0.00000")</span>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(evaluation?.Zoning?.Zone))
+                {
+                    <div class="data-item">
+                        <span class="data-label">Zoning</span>
+                        <span class="data-value">@evaluation.Zoning.Zone</span>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="data-section">
+                <h5><i class="fa fa-bullseye me-2 text-primary"></i>Intended Use</h5>
+                @if (intendedUse != null)
+                {
+                    <div class="data-item">
+                        <span class="data-label">Category</span>
+                        <span class="data-value">@intendedUse.Category</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Purpose</span>
+                        <span class="data-value">@intendedUse.Purpose</span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(intendedUse.SpecificUse))
+                    {
+                        <div class="data-item">
+                            <span class="data-label">Specific Use</span>
+                            <span class="data-value">@intendedUse.SpecificUse</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted small mb-0">Not specified</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Completeness -->
+    <div class="data-section mb-4">
+        <h5><i class="fa fa-tasks me-2"></i>Data Completeness</h5>
+        <div class="progress mb-3" style="height: 25px;">
+            <div class="progress-bar bg-success" style="width: @completionPercent%;">
+                @completionPercent% Complete
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4 col-6 mb-2">
+                <div class="d-flex align-items-center">
+                    <i class="fa fa-@(HasZoning ? "check-circle text-success" : "times-circle text-danger") me-2"></i>
+                    <span>Zoning</span>
+                </div>
+            </div>
+            <div class="col-md-4 col-6 mb-2">
+                <div class="d-flex align-items-center">
+                    <i class="fa fa-@(HasHazards ? "check-circle text-success" : "times-circle text-danger") me-2"></i>
+                    <span>Hazards</span>
+                </div>
+            </div>
+            <div class="col-md-4 col-6 mb-2">
+                <div class="d-flex align-items-center">
+                    <i class="fa fa-@(HasGeotech ? "check-circle text-success" : "times-circle text-danger") me-2"></i>
+                    <span>Geotechnical</span>
+                </div>
+            </div>
+            <div class="col-md-4 col-6 mb-2">
+                <div class="d-flex align-items-center">
+                    <i class="fa fa-@(HasInfra ? "check-circle text-success" : "times-circle text-danger") me-2"></i>
+                    <span>Infrastructure</span>
+                </div>
+            </div>
+            <div class="col-md-4 col-6 mb-2">
+                <div class="d-flex align-items-center">
+                    <i class="fa fa-@(HasClimate ? "check-circle text-success" : "times-circle text-danger") me-2"></i>
+                    <span>Climate</span>
+                </div>
+            </div>
+            <div class="col-md-4 col-6 mb-2">
+                <div class="d-flex align-items-center">
+                    <i class="fa fa-@(HasLand ? "check-circle text-success" : "times-circle text-danger") me-2"></i>
+                    <span>Land/Title</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Findings -->
+    @if (evaluation?.DataGaps?.Count > 0 || evaluation?.Warnings?.Count > 0)
+    {
+        <div class="alert alert-warning">
+            <h6 class="alert-heading">
+                <i class="fa fa-exclamation-triangle me-2"></i>Key Findings & Gaps
+            </h6>
+            <ul class="mb-0 small">
+                @foreach (var warning in evaluation.Warnings ?? [])
+                {
+                    <li>@warning</li>
+                }
+                @foreach (var gap in evaluation.DataGaps?.Take(5) ?? [])
+                {
+                    <li><strong>@gap.Section:</strong> @gap.Reason</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <!-- Zoning Compatibility Check -->
+    @if (intendedUse != null && evaluation?.Zoning != null)
+    {
+        var zone = evaluation.Zoning;
+        var isPermitted = zone.PermittedActivities?.Any(a => 
+            a.Contains(intendedUse.Category.ToString(), StringComparison.OrdinalIgnoreCase)) ?? false;
+        var isRestricted = zone.RestrictedDiscretionary?.Any(a => 
+            a.Contains(intendedUse.Category.ToString(), StringComparison.OrdinalIgnoreCase)) ?? false;
+        
+        <div class="alert @(isRestricted ? "alert-danger" : isPermitted ? "alert-success" : "alert-info")">
+            <h6 class="alert-heading">
+                <i class="fa fa-@(isRestricted ? "times-circle" : isPermitted ? "check-circle" : "info-circle") me-2"></i>
+                Zoning Compatibility
+            </h6>
+            <p class="mb-0 small">
+                @if (isRestricted)
+                {
+                    <text>Warning: Your intended use (@intendedUse.Category) may be <strong>restricted discretionary</strong> in the @zone.Zone zone. Resource consent may be required.</text>
+                }
+                else if (isPermitted)
+                {
+                    <text>Good news: Your intended use (@intendedUse.Category) appears to be <strong>permitted</strong> in the @zone.Zone zone.</text>
+                }
+                else
+                {
+                    <text>Note: Check with the council whether your intended use (@intendedUse.Category) is permitted in the @zone.Zone zone.</text>
+                }
+            </p>
+        </div>
+    }
+
+    <!-- Report Generation -->
+    <div class="data-section mb-4">
+        <h5><i class="fa fa-file-pdf me-2 text-danger"></i>Generate Reports</h5>
+        <p class="text-muted small mb-3">Download professional PDF reports for your records or to share with clients.</p>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 text-center p-3">
+                    <div class="display-6 mb-2">??</div>
+                    <h6>Full Report</h6>
+                    <p class="text-muted small">Complete site evaluation with all data</p>
+                    <a href="/api/siteevaluator/reports/@evaluation?.Id/full" class="btn btn-primary btn-sm" target="_blank">
+                        <i class="fa fa-download me-1"></i> Download
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 text-center p-3">
+                    <div class="display-6 mb-2">??</div>
+                    <h6>Summary Report</h6>
+                    <p class="text-muted small">Key findings and recommendations</p>
+                    <a href="/api/siteevaluator/reports/@evaluation?.Id/summary" class="btn btn-outline-primary btn-sm" target="_blank">
+                        <i class="fa fa-download me-1"></i> Download
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 text-center p-3">
+                    <div class="display-6 mb-2">??</div>
+                    <h6>Geotech Report</h6>
+                    <p class="text-muted small">Geotechnical data only</p>
+                    <a href="/api/siteevaluator/reports/@evaluation?.Id/geotech" class="btn btn-outline-primary btn-sm" target="_blank">
+                        <i class="fa fa-download me-1"></i> Download
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evaluation Details -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="data-section">
+                <h5><i class="fa fa-info-circle me-2"></i>Evaluation Details</h5>
+                <div class="data-item">
+                    <span class="data-label">Evaluation ID</span>
+                    <span class="data-value font-monospace">@(evaluation?.Id ?? "—")</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Created</span>
+                    <span class="data-value">@(evaluation?.CreatedDate.ToString("dd MMM yyyy HH:mm") ?? "—")</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Last Updated</span>
+                    <span class="data-value">@(evaluation?.LastUpdated?.ToString("dd MMM yyyy HH:mm") ?? "—")</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Status</span>
+                    <span class="badge bg-@(evaluation?.Status == MaxPayroll.SiteEvaluator.Models.EvaluationStatus.Complete ? "success" : "warning")">
+                        @(evaluation?.Status.ToString() ?? "Unknown")
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="data-section">
+                <h5><i class="fa fa-clock me-2"></i>Session Info</h5>
+                <div class="data-item">
+                    <span class="data-label">Started</span>
+                    <span class="data-value">@Model.WizardState.StartedAt.ToString("dd MMM yyyy HH:mm")</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Duration</span>
+                    <span class="data-value">@((DateTime.UtcNow - Model.WizardState.StartedAt).TotalMinutes.ToString("0")) minutes</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="wizard-nav">
+        <form method="post" asp-page-handler="PreviousStep" class="d-inline">
+            <input type="hidden" name="currentStep" value="8" />
+            <button type="submit" class="btn btn-outline-secondary btn-lg">
+                <i class="fa fa-arrow-left me-2"></i>Back
+            </button>
+        </form>
+        <div>
+            <form method="post" asp-page-handler="StartFresh" class="d-inline me-2">
+                <button type="submit" class="btn btn-outline-secondary btn-lg">
+                    <i class="fa fa-redo me-1"></i> Start New
+                </button>
+            </form>
+            <form method="post" asp-page-handler="CompleteWizard" class="d-inline">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fa fa-check me-2"></i>Complete & Save
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Celebration Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Show a subtle celebration on reaching the summary
+    if (@completionPercent >= 80) {
+        // Add a brief pulse animation to the completion badge
+        const badge = document.querySelector('.badge.bg-success.fs-6');
+        if (badge) {
+            badge.style.animation = 'pulse 0.5s ease-in-out';
+        }
+    }
+});
+</script>

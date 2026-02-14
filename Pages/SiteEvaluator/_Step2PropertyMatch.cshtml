@@ -1,0 +1,205 @@
+@model MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.EvaluationWizardModel
+@{
+    var propertyMatch = Model.WizardState.PropertyMatch;
+    var hasExisting = propertyMatch?.ExistingEvaluations?.Count > 0;
+    var hasLinzMatches = propertyMatch?.LinzMatches?.Count > 0;
+}
+
+<!-- Step 2: Property Match -->
+<div class="wizard-card">
+    <div class="wizard-card-header">
+        <div class="icon bg-success">
+            <i class="fa fa-building"></i>
+        </div>
+        <div>
+            <h3>Select Property</h3>
+            <p class="text-muted mb-0">
+                @if (hasExisting)
+                {
+                    <span>We found existing evaluations for this address. Choose to use one or create new.</span>
+                }
+                else if (hasLinzMatches)
+                {
+                    <span>Select the correct property from LINZ results.</span>
+                }
+                else
+                {
+                    <span>No matches found. Please refine your search.</span>
+                }
+            </p>
+        </div>
+    </div>
+
+    <form method="post" asp-page-handler="SelectProperty" id="propertyForm">
+        @if (hasExisting)
+        {
+            <!-- Existing Evaluations Section -->
+            <div class="mb-4">
+                <h5 class="d-flex align-items-center mb-3">
+                    <span class="badge bg-info me-2">@propertyMatch.ExistingEvaluations.Count</span>
+                    Existing Evaluations Found
+                </h5>
+                <p class="text-muted small">
+                    <i class="fa fa-info-circle me-1"></i>
+                    We found evaluations that match your search. You can continue with an existing one or create a new evaluation.
+                </p>
+
+                <div class="row">
+                    @foreach (var existing in propertyMatch.ExistingEvaluations)
+                    {
+                        var statusClass = existing.Status switch
+                        {
+                            MaxPayroll.SiteEvaluator.Models.EvaluationStatus.Complete => "bg-success",
+                            MaxPayroll.SiteEvaluator.Models.EvaluationStatus.InProgress => "bg-warning",
+                            _ => "bg-secondary"
+                        };
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="property-match-card existing-eval" onclick="selectExisting('@existing.Id')">
+                                <input type="radio" name="SelectedExistingId" value="@existing.Id" />
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <i class="fa fa-history text-info me-1"></i>
+                                        <strong>@(existing.Address.Length > 35 ? existing.Address.Substring(0, 35) + "..." : existing.Address)</strong>
+                                    </div>
+                                    <span class="badge @statusClass">@existing.Status</span>
+                                </div>
+                                <div class="small text-muted">
+                                    <div><i class="fa fa-calendar me-1"></i> Created: @existing.CreatedDate.ToString("dd MMM yyyy")</div>
+                                    <div><i class="fa fa-percentage me-1"></i> Completeness: @existing.CompletenessPercent%</div>
+                                </div>
+                                <div class="mt-2">
+                                    <div class="progress" style="height: 4px;">
+                                        <div class="progress-bar bg-success" style="width: @existing.CompletenessPercent%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="alert alert-light border mt-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="createNewCheck" onchange="toggleCreateNew(this)">
+                        <label class="form-check-label" for="createNewCheck">
+                            <strong>Create a new evaluation instead</strong>
+                            <div class="text-muted small">Start fresh with current data from all sources</div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" name="CreateNew" id="createNewInput" value="false" />
+            
+            <hr class="my-4" />
+        }
+
+        @if (hasLinzMatches)
+        {
+            <!-- LINZ Property Matches -->
+            <div class="mb-4">
+                <h5 class="d-flex align-items-center mb-3">
+                    <span class="badge bg-primary me-2">@propertyMatch.LinzMatches.Count</span>
+                    @(hasExisting ? "Or Select from LINZ Results" : "LINZ Property Matches")
+                </h5>
+
+                @for (var i = 0; i < propertyMatch.LinzMatches.Count; i++)
+                {
+                    var match = propertyMatch.LinzMatches[i];
+                    var confidenceClass = match.MatchConfidence >= 90 ? "confidence-high" 
+                        : match.MatchConfidence >= 70 ? "confidence-medium" 
+                        : "confidence-low";
+                    var isSelected = propertyMatch.SelectedProperty?.FullAddress == match.FullAddress;
+                    
+                    <div class="property-match-card @(isSelected ? "selected" : "")">
+                        <input type="radio" name="SelectedPropertyIndex" value="@i" @(isSelected ? "checked" : "") />
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold mb-1">
+                                    <i class="fa fa-map-marker-alt text-primary me-1"></i>
+                                    @match.FullAddress
+                                </div>
+                                <div class="small text-muted">
+                                    @if (!string.IsNullOrEmpty(match.Suburb) || !string.IsNullOrEmpty(match.City))
+                                    {
+                                        <span><i class="fa fa-map me-1"></i> @match.Suburb, @match.City</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(match.TerritorialAuthority))
+                                    {
+                                        <span class="ms-3"><i class="fa fa-building me-1"></i> @match.TerritorialAuthority</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(match.TitleReference))
+                                {
+                                    <div class="small text-muted mt-1">
+                                        <i class="fa fa-file-alt me-1"></i> Title: @match.TitleReference
+                                    </div>
+                                }
+                            </div>
+                            <span class="match-confidence @confidenceClass">
+                                @match.MatchConfidence% match
+                            </span>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (!hasExisting && !hasLinzMatches)
+        {
+            <!-- No Results -->
+            <div class="text-center py-5">
+                <div class="display-1 text-muted mb-3">??</div>
+                <h4>No Properties Found</h4>
+                <p class="text-muted">
+                    We couldn't find any matching properties. Please try a different search.
+                </p>
+                <a href="?step=1" class="btn btn-outline-primary">
+                    <i class="fa fa-arrow-left me-1"></i> Back to Search
+                </a>
+            </div>
+        }
+        else
+        {
+            <!-- Navigation -->
+            <div class="wizard-nav">
+                <form method="post" asp-page-handler="PreviousStep" class="d-inline">
+                    <input type="hidden" name="currentStep" value="2" />
+                    <button type="submit" class="btn btn-outline-secondary btn-lg">
+                        <i class="fa fa-arrow-left me-2"></i>Back
+                    </button>
+                </form>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    Start Evaluation
+                    <i class="fa fa-arrow-right ms-2"></i>
+                </button>
+            </div>
+        }
+    </form>
+</div>
+
+<script>
+function selectExisting(id) {
+    document.querySelectorAll('.existing-eval').forEach(c => c.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+    event.currentTarget.querySelector('input[type="radio"]').checked = true;
+    
+    // Uncheck "create new"
+    document.getElementById('createNewCheck').checked = false;
+    document.getElementById('createNewInput').value = 'false';
+    
+    // Unselect LINZ matches
+    document.querySelectorAll('.property-match-card:not(.existing-eval) input[type="radio"]').forEach(r => r.checked = false);
+    document.querySelectorAll('.property-match-card:not(.existing-eval)').forEach(c => c.classList.remove('selected'));
+}
+
+function toggleCreateNew(checkbox) {
+    document.getElementById('createNewInput').value = checkbox.checked ? 'true' : 'false';
+    
+    if (checkbox.checked) {
+        // Unselect existing evaluations
+        document.querySelectorAll('.existing-eval input[type="radio"]').forEach(r => r.checked = false);
+        document.querySelectorAll('.existing-eval').forEach(c => c.classList.remove('selected'));
+    }
+}
+</script>

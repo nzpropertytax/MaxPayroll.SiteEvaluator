@@ -1,0 +1,367 @@
+@model MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.EvaluationWizardModel
+@{
+    var evaluation = Model.WizardState.Evaluation;
+    var hazards = evaluation?.Hazards;
+    var hasData = hazards != null;
+    
+    string GetRiskBadge(string? risk)
+    {
+        return risk?.ToLower() switch
+        {
+            "low" or "none" or "nil" => "status-badge low-risk",
+            "medium" or "moderate" => "status-badge medium-risk",
+            "high" or "very high" or "severe" => "status-badge high-risk",
+            _ => "status-badge partial"
+        };
+    }
+}
+
+<!-- Step 4: Hazards Data -->
+<div class="wizard-card">
+    <div class="wizard-card-header">
+        <div class="icon" style="background: #dc3545;">
+            <i class="fa fa-exclamation-triangle"></i>
+        </div>
+        <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>Natural Hazards</h3>
+                    <p class="text-muted mb-0">Flood zones, liquefaction, seismic hazards, and contamination</p>
+                </div>
+                @if (hasData)
+                {
+                    <span class="status-badge complete">
+                        <i class="fa fa-check me-1"></i> Data Retrieved
+                    </span>
+                }
+                else
+                {
+                    <span class="status-badge missing">
+                        <i class="fa fa-exclamation-circle me-1"></i> No Data
+                    </span>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (hasData)
+    {
+        <div class="row">
+            <!-- Flooding -->
+            <div class="col-md-6 mb-3">
+                <div class="data-section h-100">
+                    <h5><i class="fa fa-water me-2 text-info"></i>Flood Hazard</h5>
+                    @if (hazards.Flooding != null)
+                    {
+                        <div class="data-item">
+                            <span class="data-label">Flood Zone</span>
+                            <span class="@GetRiskBadge(hazards.Flooding.Zone)">@(hazards.Flooding.Zone ?? "Unknown")</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(hazards.Flooding.Description))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Description</span>
+                                <span class="data-value">@hazards.Flooding.Description</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(hazards.Flooding.FloodLevel))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Flood Level</span>
+                                <span class="data-value">@hazards.Flooding.FloodLevel</span>
+                            </div>
+                        }
+                        @if (hazards.Flooding.FloorLevelRequirement != null)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Floor Level Requirement</span>
+                                <span class="data-value">@hazards.Flooding.FloorLevelRequirement?.ToString("0.00") m</span>
+                            </div>
+                        }
+                        @if (hazards.Flooding.RequiresFloodAssessment)
+                        {
+                            <div class="alert alert-warning small py-2 mt-2 mb-0">
+                                <i class="fa fa-exclamation-triangle me-1"></i>
+                                Flood assessment required
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">No flood data available</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Liquefaction -->
+            <div class="col-md-6 mb-3">
+                <div class="data-section h-100">
+                    <h5><i class="fa fa-layer-group me-2 text-warning"></i>Liquefaction</h5>
+                    @if (hazards.Liquefaction != null)
+                    {
+                        <div class="data-item">
+                            <span class="data-label">Category</span>
+                            <span class="@GetRiskBadge(hazards.Liquefaction.Category)">@(hazards.Liquefaction.Category ?? "Unknown")</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(hazards.Liquefaction.Description))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Description</span>
+                                <span class="data-value">@hazards.Liquefaction.Description</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(hazards.Liquefaction.FoundationGuidance))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Foundation Guidance</span>
+                                <span class="data-value">@hazards.Liquefaction.FoundationGuidance</span>
+                            </div>
+                        }
+                        @if (hazards.Liquefaction.RequiresGeotechAssessment)
+                        {
+                            <div class="alert alert-warning small py-2 mt-2 mb-0">
+                                <i class="fa fa-exclamation-triangle me-1"></i>
+                                Geotechnical assessment required
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">No liquefaction data available</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Seismic -->
+            <div class="col-md-6 mb-3">
+                <div class="data-section h-100">
+                    <h5><i class="fa fa-bolt me-2 text-danger"></i>Seismic Hazard</h5>
+                    @if (hazards.Seismic != null)
+                    {
+                        <div class="data-item">
+                            <span class="data-label">Seismic Zone</span>
+                            <span class="data-value">@(hazards.Seismic.Zone ?? "-")</span>
+                        </div>
+                        <div class="data-item">
+                            <span class="data-label">Z-Factor</span>
+                            <span class="data-value">@(hazards.Seismic.ZoneFactor?.ToString("0.00") ?? "-")</span>
+                        </div>
+                        @if (hazards.Seismic.PgaUls != null)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">PGA (ULS)</span>
+                                <span class="data-value">@hazards.Seismic.PgaUls?.ToString("0.00")g</span>
+                            </div>
+                        }
+                        @if (hazards.Seismic.NearFaultFactor > 1.0)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Near-Fault Factor</span>
+                                <span class="data-value text-warning">@hazards.Seismic.NearFaultFactor?.ToString("0.00")</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(hazards.Seismic.SiteClass))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Site Class</span>
+                                <span class="data-value">@hazards.Seismic.SiteClass</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">No seismic data available</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Contamination -->
+            <div class="col-md-6 mb-3">
+                <div class="data-section h-100">
+                    <h5><i class="fa fa-biohazard me-2 text-secondary"></i>Contamination</h5>
+                    @if (hazards.Contamination != null)
+                    {
+                        <div class="data-item">
+                            <span class="data-label">On HAIL</span>
+                            <span class="@(hazards.Contamination.OnHail ? "status-badge high-risk" : "status-badge low-risk")">
+                                @(hazards.Contamination.OnHail ? "Yes" : "No")
+                            </span>
+                        </div>
+                        <div class="data-item">
+                            <span class="data-label">On LLUR</span>
+                            <span class="@(hazards.Contamination.OnLlur ? "status-badge high-risk" : "status-badge low-risk")">
+                                @(hazards.Contamination.OnLlur ? "Yes" : "No")
+                            </span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(hazards.Contamination.Status))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Status</span>
+                                <span class="data-value">@hazards.Contamination.Status</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(hazards.Contamination.Description))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Description</span>
+                                <span class="data-value">@hazards.Contamination.Description</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">No contamination data available</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Other Hazards Summary -->
+        @if (hazards.CoastalErosion || hazards.CoastalInundation || hazards.SlopeInstability || hazards.Subsidence || hazards.Wildfire)
+        {
+            <div class="data-section mt-3">
+                <h5><i class="fa fa-exclamation-circle me-2"></i>Other Hazards</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    @if (hazards.CoastalErosion)
+                    {
+                        <span class="badge bg-warning">Coastal Erosion</span>
+                    }
+                    @if (hazards.CoastalInundation)
+                    {
+                        <span class="badge bg-warning">Coastal Inundation</span>
+                    }
+                    @if (hazards.SlopeInstability)
+                    {
+                        <span class="badge bg-warning">Slope Instability</span>
+                    }
+                    @if (hazards.Subsidence)
+                    {
+                        <span class="badge bg-warning">Subsidence</span>
+                    }
+                    @if (hazards.Wildfire)
+                    {
+                        <span class="badge bg-warning">Wildfire Risk</span>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Nearby Faults -->
+        @if (hazards.Seismic?.NearbyFaults?.Count > 0)
+        {
+            <div class="data-section mt-3">
+                <h5><i class="fa fa-mountain me-2"></i>Nearby Active Faults</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fault Name</th>
+                                <th>Distance</th>
+                                <th>Type</th>
+                                <th>Last Rupture</th>
+                                <th>Max Magnitude</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var fault in hazards.Seismic.NearbyFaults.Take(5))
+                            {
+                                <tr>
+                                    <td><strong>@fault.Name</strong></td>
+                                    <td>@fault.DistanceKm.ToString("0.0") km</td>
+                                    <td>@(fault.FaultType ?? "-")</td>
+                                    <td>@(fault.LastRupture ?? "-")</td>
+                                    <td>
+                                        @if (fault.MaxMagnitude != null)
+                                        {
+                                            <span class="badge bg-danger">M @fault.MaxMagnitude?.ToString("0.0")</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <!-- Hazard Summary -->
+        @if (hazards.AllHazards?.Count > 0)
+        {
+            <div class="data-section mt-3">
+                <h5><i class="fa fa-list me-2"></i>Hazard Summary</h5>
+                @foreach (var summary in hazards.AllHazards)
+                {
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div>
+                            <strong>@summary.HazardType</strong>
+                            <div class="small text-muted">@summary.Description</div>
+                        </div>
+                        <span class="@GetRiskBadge(summary.Severity)">@summary.Severity</span>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Data Source -->
+        @if (hazards.Source != null)
+        {
+            <div class="mt-4 p-3 bg-light rounded small">
+                <i class="fa fa-database me-1"></i>
+                <strong>Source:</strong> @hazards.Source.SourceName
+                @if (!string.IsNullOrEmpty(hazards.Source.SourceUrl))
+                {
+                    <a href="@hazards.Source.SourceUrl" target="_blank" class="ms-2">
+                        <i class="fa fa-external-link-alt"></i>
+                    </a>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <!-- No Data Available -->
+        <div class="text-center py-5">
+            <div class="display-4 text-muted mb-3"><i class="fa fa-exclamation-triangle"></i></div>
+            <h5>Hazard Data Not Available</h5>
+            <p class="text-muted">
+                We couldn't retrieve hazard data for this location.
+            </p>
+            <form method="post" asp-page-handler="RefreshSection" class="mt-3">
+                <input type="hidden" name="section" value="hazards" />
+                <input type="hidden" name="currentStep" value="4" />
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fa fa-sync me-1"></i> Try Again
+                </button>
+            </form>
+        </div>
+    }
+
+    <!-- Navigation -->
+    <div class="wizard-nav">
+        <form method="post" asp-page-handler="PreviousStep" class="d-inline">
+            <input type="hidden" name="currentStep" value="4" />
+            <button type="submit" class="btn btn-outline-secondary btn-lg">
+                <i class="fa fa-arrow-left me-2"></i>Back
+            </button>
+        </form>
+        <div>
+            @if (hasData)
+            {
+                <form method="post" asp-page-handler="RefreshSection" class="d-inline me-2">
+                    <input type="hidden" name="section" value="hazards" />
+                    <input type="hidden" name="currentStep" value="4" />
+                    <button type="submit" class="btn btn-outline-secondary btn-lg">
+                        <i class="fa fa-sync me-1"></i> Refresh
+                    </button>
+                </form>
+            }
+            <form method="post" asp-page-handler="NextStep" class="d-inline">
+                <input type="hidden" name="currentStep" value="4" />
+                <button type="submit" class="btn btn-primary btn-lg">
+                    Next: Geotech
+                    <i class="fa fa-arrow-right ms-2"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

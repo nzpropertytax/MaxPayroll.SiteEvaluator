@@ -7,43 +7,68 @@
 }
 
 <div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8 text-center">
-            <h1 class="display-4 mb-4">??? Site Evaluator</h1>
-            <p class="lead text-muted mb-5">
-                Comprehensive due diligence for New Zealand property sites.
-                Enter an address to get zoning, hazards, geotechnical data, and infrastructure information.
-            </p>
-        </div>
+<div class="row justify-content-center">
+    <div class="col-lg-8 text-center">
+        <h1 class="display-4 mb-4">??? Site Evaluator</h1>
+        <p class="lead text-muted mb-5">
+            Comprehensive due diligence for New Zealand property sites.
+            Enter an address to get zoning, hazards, geotechnical data, and infrastructure information.
+        </p>
     </div>
+</div>
 
-    <div class="row justify-content-center">
-        <div class="col-lg-6">
-            <div class="card shadow">
-                <div class="card-body p-4">
-                    <form method="get" asp-page="/SiteEvaluator/Search" id="searchForm">
-                        <div class="mb-3">
-                            <label for="address" class="form-label fw-bold">Property Address</label>
-                            <div class="position-relative">
-                                <input type="text" 
-                                       class="form-control form-control-lg" 
-                                       id="address" 
-                                       name="address" 
-                                       placeholder="Start typing an address..."
-                                       autocomplete="off"
-                                       required />
-                                <div id="addressSuggestions" class="address-suggestions"></div>
-                            </div>
-                            <div class="form-text">Enter a New Zealand street address</div>
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <!-- Quick Search Card -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fa fa-search me-2"></i>Quick Search</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="get" asp-page="/SiteEvaluator/Search" id="searchForm">
+                    <div class="mb-3">
+                        <label for="address" class="form-label fw-bold">Property Address</label>
+                        <div class="position-relative">
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="address" 
+                                   name="address" 
+                                   placeholder="Start typing an address..."
+                                   autocomplete="off"
+                                   required />
+                            <div id="addressSuggestions" class="address-suggestions"></div>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg w-100">
-                            ?? Search Site
-                        </button>
-                    </form>
+                        <div class="form-text">Enter a New Zealand street address</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        ?? Search Site
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Wizard Card -->
+        <div class="card shadow border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fa fa-magic me-2"></i>Step-by-Step Wizard</h5>
+            </div>
+            <div class="card-body p-4 text-center">
+                <p class="text-muted mb-3">
+                    Need a comprehensive evaluation? Use our guided wizard to step through each data source 
+                    and build a complete due diligence report.
+                </p>
+                <a href="/SiteEvaluator/EvaluationWizard" class="btn btn-success btn-lg">
+                    <i class="fa fa-play-circle me-2"></i>Start Evaluation Wizard
+                </a>
+                <div class="mt-3 small text-muted">
+                    <i class="fa fa-check-circle text-success me-1"></i> Specify intended use
+                    <i class="fa fa-check-circle text-success me-1 ms-2"></i> Match existing data
+                    <i class="fa fa-check-circle text-success me-1 ms-2"></i> Review each section
                 </div>
             </div>
         </div>
     </div>
+</div>
 
     <div class="row mt-5 pt-4">
         <div class="col-md-4 text-center mb-4">

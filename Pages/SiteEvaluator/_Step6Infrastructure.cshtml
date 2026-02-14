@@ -1,0 +1,315 @@
+@model MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.EvaluationWizardModel
+@{
+    var evaluation = Model.WizardState.Evaluation;
+    var infra = evaluation?.Infrastructure;
+    var hasData = infra != null;
+    
+    string GetAvailabilityBadge(bool available)
+    {
+        return available ? "status-badge complete" : "status-badge missing";
+    }
+    
+    string GetAvailabilityText(bool available)
+    {
+        return available ? "Available" : "Not Available";
+    }
+}
+
+<!-- Step 6: Infrastructure Data -->
+<div class="wizard-card">
+    <div class="wizard-card-header">
+        <div class="icon" style="background: #17a2b8;">
+            <i class="fa fa-plug"></i>
+        </div>
+        <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>Infrastructure & Services</h3>
+                    <p class="text-muted mb-0">Water, wastewater, stormwater, power, and communications</p>
+                </div>
+                @if (hasData)
+                {
+                    <span class="status-badge complete">
+                        <i class="fa fa-check me-1"></i> Data Retrieved
+                    </span>
+                }
+                else
+                {
+                    <span class="status-badge missing">
+                        <i class="fa fa-exclamation-circle me-1"></i> No Data
+                    </span>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (hasData)
+    {
+        <div class="row">
+            <!-- Water Supply -->
+            <div class="col-md-6 mb-3">
+                <div class="data-section h-100">
+                    <h5><i class="fa fa-tint me-2 text-info"></i>Water Supply</h5>
+                    @if (infra.Water != null)
+                    {
+                        <div class="data-item">
+                            <span class="data-label">Availability</span>
+                            <span class="@GetAvailabilityBadge(infra.Water.Available)">@GetAvailabilityText(infra.Water.Available)</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(infra.Water.Provider))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Provider</span>
+                                <span class="data-value">@infra.Water.Provider</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(infra.Water.PressureZone))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Pressure Zone</span>
+                                <span class="data-value">@infra.Water.PressureZone</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(infra.Water.MainSize))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Main Size</span>
+                                <span class="data-value">@infra.Water.MainSize</span>
+                            </div>
+                        }
+                        @if (infra.Water.DistanceToMain != null)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Distance to Main</span>
+                                <span class="data-value">@infra.Water.DistanceToMain m</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">No water supply data available</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Wastewater -->
+            <div class="col-md-6 mb-3">
+                <div class="data-section h-100">
+                    <h5><i class="fa fa-toilet me-2 text-warning"></i>Wastewater</h5>
+                    @if (infra.Wastewater != null)
+                    {
+                        <div class="data-item">
+                            <span class="data-label">Availability</span>
+                            <span class="@GetAvailabilityBadge(infra.Wastewater.Available)">@GetAvailabilityText(infra.Wastewater.Available)</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(infra.Wastewater.Catchment))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Catchment</span>
+                                <span class="data-value">@infra.Wastewater.Catchment</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(infra.Wastewater.MainSize))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Main Size</span>
+                                <span class="data-value">@infra.Wastewater.MainSize</span>
+                            </div>
+                        }
+                        @if (infra.Wastewater.DistanceToMain != null)
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Distance to Main</span>
+                                <span class="data-value">@infra.Wastewater.DistanceToMain m</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">No wastewater data available</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Stormwater -->
+            <div class="col-md-6 mb-3">
+                <div class="data-section h-100">
+                    <h5><i class="fa fa-cloud-rain me-2 text-primary"></i>Stormwater</h5>
+                    @if (infra.Stormwater != null)
+                    {
+                        <div class="data-item">
+                            <span class="data-label">Availability</span>
+                            <span class="@GetAvailabilityBadge(infra.Stormwater.Available)">@GetAvailabilityText(infra.Stormwater.Available)</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(infra.Stormwater.Catchment))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Catchment</span>
+                                <span class="data-value">@infra.Stormwater.Catchment</span>
+                            </div>
+                        }
+                        @if (infra.Stormwater.OnSiteDisposalRequired)
+                        {
+                            <div class="alert alert-info small py-2 mt-2 mb-0">
+                                <i class="fa fa-info-circle me-1"></i>
+                                On-site stormwater disposal may be required
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">No stormwater data available</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Power -->
+            <div class="col-md-6 mb-3">
+                <div class="data-section h-100">
+                    <h5><i class="fa fa-bolt me-2 text-danger"></i>Electricity</h5>
+                    @if (infra.Power != null)
+                    {
+                        <div class="data-item">
+                            <span class="data-label">Availability</span>
+                            <span class="@GetAvailabilityBadge(infra.Power.Available)">@GetAvailabilityText(infra.Power.Available)</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(infra.Power.Provider))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Provider</span>
+                                <span class="data-value">@infra.Power.Provider</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(infra.Power.NetworkArea))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Network Area</span>
+                                <span class="data-value">@infra.Power.NetworkArea</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">No electricity data available</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Gas -->
+            <div class="col-md-6 mb-3">
+                <div class="data-section h-100">
+                    <h5><i class="fa fa-fire me-2" style="color: orange;"></i>Gas</h5>
+                    @if (infra.Gas != null)
+                    {
+                        <div class="data-item">
+                            <span class="data-label">Availability</span>
+                            <span class="@GetAvailabilityBadge(infra.Gas.Available)">@GetAvailabilityText(infra.Gas.Available)</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(infra.Gas.Provider))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Provider</span>
+                                <span class="data-value">@infra.Gas.Provider</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">No gas data available</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Communications -->
+            <div class="col-md-6 mb-3">
+                <div class="data-section h-100">
+                    <h5><i class="fa fa-wifi me-2 text-success"></i>Communications</h5>
+                    @if (infra.Communications != null)
+                    {
+                        <div class="data-item">
+                            <span class="data-label">Fibre</span>
+                            <span class="@GetAvailabilityBadge(infra.Communications.FibreAvailable)">@GetAvailabilityText(infra.Communications.FibreAvailable)</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(infra.Communications.FibreType))
+                        {
+                            <div class="data-item">
+                                <span class="data-label">Fibre Type</span>
+                                <span class="data-value">@infra.Communications.FibreType</span>
+                            </div>
+                        }
+                        <div class="data-item">
+                            <span class="data-label">Copper</span>
+                            <span class="@GetAvailabilityBadge(infra.Communications.CopperAvailable)">@GetAvailabilityText(infra.Communications.CopperAvailable)</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">No communications data available</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Source -->
+        @if (infra.Source != null)
+        {
+            <div class="mt-4 p-3 bg-light rounded small">
+                <i class="fa fa-database me-1"></i>
+                <strong>Source:</strong> @infra.Source.SourceName
+                @if (!string.IsNullOrEmpty(infra.Source.SourceUrl))
+                {
+                    <a href="@infra.Source.SourceUrl" target="_blank" class="ms-2">
+                        <i class="fa fa-external-link-alt"></i>
+                    </a>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <!-- No Data Available -->
+        <div class="text-center py-5">
+            <div class="display-4 text-muted mb-3">??</div>
+            <h5>Infrastructure Data Not Available</h5>
+            <p class="text-muted">
+                We couldn't retrieve infrastructure data for this location.
+            </p>
+            <form method="post" asp-page-handler="RefreshSection" class="mt-3">
+                <input type="hidden" name="section" value="infrastructure" />
+                <input type="hidden" name="currentStep" value="6" />
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fa fa-sync me-1"></i> Try Again
+                </button>
+            </form>
+        </div>
+    }
+
+    <!-- Navigation -->
+    <div class="wizard-nav">
+        <form method="post" asp-page-handler="PreviousStep" class="d-inline">
+            <input type="hidden" name="currentStep" value="6" />
+            <button type="submit" class="btn btn-outline-secondary btn-lg">
+                <i class="fa fa-arrow-left me-2"></i>Back
+            </button>
+        </form>
+        <div>
+            @if (hasData)
+            {
+                <form method="post" asp-page-handler="RefreshSection" class="d-inline me-2">
+                    <input type="hidden" name="section" value="infrastructure" />
+                    <input type="hidden" name="currentStep" value="6" />
+                    <button type="submit" class="btn btn-outline-secondary btn-lg">
+                        <i class="fa fa-sync me-1"></i> Refresh
+                    </button>
+                </form>
+            }
+            <form method="post" asp-page-handler="NextStep" class="d-inline">
+                <input type="hidden" name="currentStep" value="6" />
+                <button type="submit" class="btn btn-primary btn-lg">
+                    Next: Climate
+                    <i class="fa fa-arrow-right ms-2"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
