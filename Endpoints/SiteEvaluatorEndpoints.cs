@@ -30,6 +30,19 @@ public static class SiteEvaluatorEndpoints
             .WithName("SearchByCoordinates")
             .WithDescription("Search for a site by coordinates");
 
+        // Title/Property endpoints (LINZ Landonline)
+        group.MapGet("/titles/search", SearchTitles)
+            .WithName("SearchTitles")
+            .WithDescription("Search for property titles by address (requires Landonline subscription)");
+            
+        group.MapGet("/titles/{titleReference}", GetTitleData)
+            .WithName("GetTitleData")
+            .WithDescription("Get property title details including ownership and encumbrances");
+            
+        group.MapGet("/titles/{titleReference}/history", GetOwnershipHistory)
+            .WithName("GetOwnershipHistory")
+            .WithDescription("Get ownership transfer history for a title (requires Landonline subscription)");
+
         // Evaluation endpoints
         group.MapGet("/evaluations/{id}", GetEvaluation)
             .WithName("GetEvaluation")
@@ -111,6 +124,66 @@ public static class SiteEvaluatorEndpoints
 
         var evaluation = await searchService.SearchByCoordinatesAsync(request.Latitude, request.Longitude);
         return Results.Ok(evaluation);
+    }
+
+    // === Title/Property Handlers (LINZ Landonline) ===
+
+    private static async Task<IResult> SearchTitles(
+        [FromQuery] string address,
+        ILinzDataService linzService)
+    {
+        if (string.IsNullOrWhiteSpace(address))
+            return Results.BadRequest("Address is required");
+
+        var titles = await linzService.SearchTitlesAsync(address);
+        
+        if (titles.Count == 0)
+        {
+            return Results.Ok(new
+            {
+                Titles = titles,
+                Note = "No titles found. If Landonline subscription is not configured, title search is unavailable."
+            });
+        }
+        
+        return Results.Ok(new { Titles = titles });
+    }
+
+    private static async Task<IResult> GetTitleData(
+        string titleReference,
+        ILinzDataService linzService)
+    {
+        if (string.IsNullOrWhiteSpace(titleReference))
+            return Results.BadRequest("Title reference is required");
+
+        var titleData = await linzService.GetTitleDataAsync(titleReference);
+        
+        if (titleData == null)
+            return Results.NotFound(new { Message = $"Title not found: {titleReference}" });
+
+        return Results.Ok(titleData);
+    }
+
+    private static async Task<IResult> GetOwnershipHistory(
+        string titleReference,
+        ILinzDataService linzService)
+    {
+        if (string.IsNullOrWhiteSpace(titleReference))
+            return Results.BadRequest("Title reference is required");
+
+        var history = await linzService.GetOwnershipHistoryAsync(titleReference);
+        
+        if (history == null)
+        {
+            return Results.Ok(new
+            {
+                TitleReference = titleReference,
+                Message = "Ownership history requires Landonline subscription. Contact LINZ to subscribe.",
+                SubscriptionUrl = "https://www.linz.govt.nz/products-services/data/types-linz-data/property-ownership-and-boundary-data"
+            });
+        }
+
+        return Results.Ok(history);
     }
 
     // === Evaluation Handlers ===

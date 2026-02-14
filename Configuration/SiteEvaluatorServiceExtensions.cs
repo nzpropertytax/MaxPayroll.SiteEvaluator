@@ -44,11 +44,18 @@ public static class SiteEvaluatorServiceExtensions
             client.BaseAddress = new Uri(configuration["SiteEvaluator:Nzgd:BaseUrl"] ?? "https://www.nzgd.org.nz");
         });
 
-        // Council services (multiple implementations)
-        services.AddHttpClient<ICouncilDataService, ChristchurchCouncilService>();
-        // Add more councils as they're implemented:
-        // services.AddHttpClient<ICouncilDataService, AucklandCouncilService>();
-        // services.AddHttpClient<ICouncilDataService, WellingtonCouncilService>();
+        // Council services (multiple implementations - all registered)
+        services.AddHttpClient<ChristchurchCouncilService>();
+        services.AddHttpClient<AucklandCouncilService>();
+        services.AddHttpClient<WellingtonCouncilService>();
+        
+        // Register all council services for injection as IEnumerable<ICouncilDataService>
+        services.AddScoped<ICouncilDataService, ChristchurchCouncilService>(sp =>
+            sp.GetRequiredService<ChristchurchCouncilService>());
+        services.AddScoped<ICouncilDataService, AucklandCouncilService>(sp =>
+            sp.GetRequiredService<AucklandCouncilService>());
+        services.AddScoped<ICouncilDataService, WellingtonCouncilService>(sp =>
+            sp.GetRequiredService<WellingtonCouncilService>());
 
         services.AddHttpClient<IGnsDataService, GnsDataService>();
         services.AddHttpClient<INiwaDataService, NiwaDataService>();

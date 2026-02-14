@@ -4,13 +4,46 @@ namespace MaxPayroll.SiteEvaluator.Services.Integration;
 
 /// <summary>
 /// Interface for LINZ data integration.
+/// Includes both free LINZ Data Service and paid Landonline APIs.
 /// </summary>
 public interface ILinzDataService
 {
+    // === Free LINZ Data Service APIs ===
+    
+    /// <summary>
+    /// Geocode an address to get location details.
+    /// </summary>
     Task<SiteLocation?> LookupAddressAsync(string address, CancellationToken ct = default);
-    Task<LandData?> GetTitleDataAsync(string titleReference, CancellationToken ct = default);
-    Task<List<Coordinate>?> GetParcelBoundaryAsync(string parcelId, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Get address autocomplete suggestions.
+    /// </summary>
     Task<List<AddressSuggestion>> GetAddressSuggestionsAsync(string query, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Get parcel boundary coordinates.
+    /// </summary>
+    Task<List<Coordinate>?> GetParcelBoundaryAsync(string parcelId, CancellationToken ct = default);
+    
+    // === Landonline APIs (requires subscription) ===
+    
+    /// <summary>
+    /// Get full title data including ownership and encumbrances.
+    /// Returns estimated data if Landonline subscription not configured.
+    /// </summary>
+    Task<LandData?> GetTitleDataAsync(string titleReference, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Search for titles by address.
+    /// Requires Landonline subscription.
+    /// </summary>
+    Task<List<TitleSearchResult>> SearchTitlesAsync(string address, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Get ownership transfer history for a title.
+    /// Requires Landonline subscription.
+    /// </summary>
+    Task<OwnershipHistory?> GetOwnershipHistoryAsync(string titleReference, CancellationToken ct = default);
 }
 
 /// <summary>

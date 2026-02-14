@@ -32,31 +32,37 @@ public class InfrastructureData
 public class WaterSupply
 {
     public bool Available { get; set; }
+    public string? Provider { get; set; }
     public string? MainSize { get; set; }
     public string? PressureZone { get; set; }
     public double? DistanceToMain { get; set; }
     public string? ConnectionNotes { get; set; }
+    public string? Notes { get; set; }
 }
 
 public class Wastewater
 {
     public bool Available { get; set; }
+    public string? Provider { get; set; }
     public string? MainSize { get; set; }
     public string? MainDepth { get; set; }
     public double? DistanceToMain { get; set; }
     public string? Catchment { get; set; }
     public string? CapacityNotes { get; set; }
+    public string? Notes { get; set; }
 }
 
 public class Stormwater
 {
     public bool Available { get; set; }
+    public string? Provider { get; set; }
     public string? MainSize { get; set; }
     public double? DistanceToMain { get; set; }
     public string? Catchment { get; set; }
     public bool OnSiteDisposalRequired { get; set; }
     public string? RequiredTreatment { get; set; }
     public string? DischargeConsent { get; set; }
+    public string? Notes { get; set; }
 }
 
 public class PowerSupply

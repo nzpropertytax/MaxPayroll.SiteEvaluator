@@ -17,8 +17,8 @@ Each New Zealand council operates their own GIS (Geographic Information System) 
 | Council | Region | Population | Status | Priority |
 |---------|--------|------------|--------|----------|
 | **Christchurch City** | Canterbury | 380,000 | ? 70% | High |
-| **Auckland Council** | Auckland | 1,700,000 | ? Stub | High |
-| **Wellington City** | Wellington | 215,000 | ? Stub | High |
+| **Auckland Council** | Auckland | 1,700,000 | ? 80% | High |
+| **Wellington City** | Wellington | 215,000 | ? 85% | High |
 | **Hamilton City** | Waikato | 170,000 | ? Not started | Medium |
 | **Tauranga City** | Bay of Plenty | 155,000 | ? Not started | Medium |
 | **Selwyn District** | Canterbury | 72,000 | ? Not started | Medium |

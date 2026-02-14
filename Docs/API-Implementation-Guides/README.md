@@ -10,11 +10,11 @@
 | API Service | Provider | Purpose | Guide |
 |-------------|----------|---------|-------|
 | **Address Geocoding** | LINZ | Address lookup & autocomplete | [LINZ-Address-API.md](LINZ-Address-API.md) |
+| **Property Titles** | LINZ Landonline | Title data, ownership, encumbrances | [LINZ-Landonline-API.md](LINZ-Landonline-API.md) |
 | **Geotechnical Data** | NZGD | Boreholes, CPTs, reports | [NZGD-API.md](NZGD-API.md) |
 | **Council GIS** | Various | Zoning, hazards, infrastructure | [Council-GIS-APIs.md](Council-GIS-APIs.md) |
 | **Seismic Data** | GNS Science | Faults, PGA, seismic zones | [GNS-Science-API.md](GNS-Science-API.md) |
 | **Climate Data** | NIWA | Rainfall, wind zones | [NIWA-API.md](NIWA-API.md) |
-| **Property Titles** | LINZ Landonline | Title data, ownership | [LINZ-Landonline-API.md](LINZ-Landonline-API.md) |
 
 ---
 
@@ -55,20 +55,58 @@
 
 ## ?? Implementation Status
 
-| Service | Interface | Implementation | Tests |
-|---------|-----------|----------------|-------|
-| LINZ Address | ? | ? 80% | ? |
-| LINZ Landonline | ? | ? Blocked | ? |
-| NZGD | ? | ?? 30% | ? |
-| CCC GIS | ? | ? 70% | ? |
-| Auckland GIS | ? | ? Stub | ? |
-| Wellington GIS | ? | ? Stub | ? |
-| GNS Science | ? | ? Stub | ? |
-| NIWA | ? | ? Stub | ? |
+| Service | Interface | Implementation | Tests | Notes |
+|---------|-----------|----------------|-------|-------|
+| LINZ Address | ? | ? 90% | ? | Working with API key |
+| LINZ Landonline | ? | ? 80% | ? | Fallback data when no subscription |
+| NZGD | ? | ?? 30% | ? | API structure ready |
+| CCC GIS | ? | ? 70% | ? | Zoning, hazards work |
+| Auckland GIS | ? | ? 80% | ? | Zoning, hazards, infrastructure |
+| Wellington GIS | ? | ? 85% | ? | Zoning, hazards, seismic |
+| GNS Science | ? | ? 80% | ? | Static Z-values + fault data |
+| NIWA | ? | ? 80% | ? | HIRDS estimates, wind zones |
+
+---
+
+## ?? API Endpoints
+
+### Title/Property Endpoints (NEW)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/siteevaluator/titles/search?address={address}` | Search titles by address |
+| GET | `/api/siteevaluator/titles/{titleReference}` | Get title details |
+| GET | `/api/siteevaluator/titles/{titleReference}/history` | Get ownership history |
+
+### Search Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/siteevaluator/address/autocomplete?q={query}` | Address autocomplete |
+| POST | `/api/siteevaluator/search/address` | Search by address |
+| POST | `/api/siteevaluator/search/title` | Search by title reference |
+| POST | `/api/siteevaluator/search/coordinates` | Search by lat/lon |
+
+### Evaluation Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/siteevaluator/evaluations/{id}` | Get evaluation |
+| GET | `/api/siteevaluator/evaluations` | Get user's evaluations |
+| DELETE | `/api/siteevaluator/evaluations/{id}` | Delete evaluation |
+| POST | `/api/siteevaluator/evaluations/{id}/refresh` | Refresh data |
+
+### Report Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/siteevaluator/reports/{id}/full` | Full PDF report |
+| GET | `/api/siteevaluator/reports/{id}/summary` | Summary PDF |
+| GET | `/api/siteevaluator/reports/{id}/geotech` | Geotech brief PDF |
 
 ---
 
 ## ?? Related Documentation
 
-- [Implementation Gaps](../../Platform/Docs/super-admin/portfolio-business-plans/Max-Site-Evaluator-Gaps.md)
-- [Service Interfaces](../Services/Integration/IntegrationInterfaces.cs)
+- [Implementation Gaps](../../../../MaxPayroll.Website.Platform/Docs/super-admin/portfolio-business-plans/Max-Site-Evaluator-Gaps.md)
+- [Service Interfaces](../../Services/Integration/IntegrationInterfaces.cs)
