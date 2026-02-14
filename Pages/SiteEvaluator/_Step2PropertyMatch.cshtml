@@ -178,28 +178,5 @@
     </form>
 </div>
 
-<script>
-function selectExisting(id) {
-    document.querySelectorAll('.existing-eval').forEach(c => c.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
-    event.currentTarget.querySelector('input[type="radio"]').checked = true;
-    
-    // Uncheck "create new"
-    document.getElementById('createNewCheck').checked = false;
-    document.getElementById('createNewInput').value = 'false';
-    
-    // Unselect LINZ matches
-    document.querySelectorAll('.property-match-card:not(.existing-eval) input[type="radio"]').forEach(r => r.checked = false);
-    document.querySelectorAll('.property-match-card:not(.existing-eval)').forEach(c => c.classList.remove('selected'));
-}
-
-function toggleCreateNew(checkbox) {
-    document.getElementById('createNewInput').value = checkbox.checked ? 'true' : 'false';
-    
-    if (checkbox.checked) {
-        // Unselect existing evaluations
-        document.querySelectorAll('.existing-eval input[type="radio"]').forEach(r => r.checked = false);
-        document.querySelectorAll('.existing-eval').forEach(c => c.classList.remove('selected'));
-    }
-}
-</script>
+<!-- Scripts moved to wwwroot/js/site-evaluator-wizard.js
+     Functions selectExisting() and toggleCreateNew() are available globally -->

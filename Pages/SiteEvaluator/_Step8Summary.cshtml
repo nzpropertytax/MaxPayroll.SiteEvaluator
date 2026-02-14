@@ -299,16 +299,4 @@
     </div>
 </div>
 
-<!-- Celebration Script -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Show a subtle celebration on reaching the summary
-    if (@completionPercent >= 80) {
-        // Add a brief pulse animation to the completion badge
-        const badge = document.querySelector('.badge.bg-success.fs-6');
-        if (badge) {
-            badge.style.animation = 'pulse 0.5s ease-in-out';
-        }
-    }
-});
-</script>
+<!-- Celebration animation handled by CSS in site-evaluator-wizard.css -->
