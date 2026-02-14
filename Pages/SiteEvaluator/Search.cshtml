@@ -7,6 +7,10 @@
         : "Site Search Results";
 }
 
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<link rel="stylesheet" href="~/css/site-evaluator-map.css" asp-append-version="true" />
+
 <div class="container py-4">
     @* Search Header *@
     <div class="row mb-4">
@@ -68,6 +72,16 @@
                         <p class="text-muted small font-monospace mb-0">
                             @Model.Evaluation.Location.Latitude.ToString("F6"), @Model.Evaluation.Location.Longitude.ToString("F6")
                         </p>
+                    </div>
+                </div>
+
+                <!-- Map -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">??? Map</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="siteMap" class="site-map-container map-sm"></div>
                     </div>
                 </div>
 
@@ -324,4 +338,72 @@
         MaxPayroll.SiteEvaluator.Models.GapSeverity.Medium => "text-info",
         _ => "text-muted"
     };
+}
+
+@section Scripts {
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="~/js/site-evaluator-map.js" asp-append-version="true"></script>
+    
+    @if (Model.Evaluation != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Initialize map
+                SiteEvaluatorMap.init('siteMap', {
+                    center: [@Model.Evaluation.Location.Latitude, @Model.Evaluation.Location.Longitude],
+                    zoom: 16
+                });
+                
+                // Add property marker
+                SiteEvaluatorMap.addPropertyMarker(
+                    @Model.Evaluation.Location.Latitude, 
+                    @Model.Evaluation.Location.Longitude,
+                    { popup: '<strong>@Model.Evaluation.Location.Address.Replace("'", "\\'")</strong>' }
+                );
+                
+                // Add boundary if available
+                @if (Model.Evaluation.Location.Boundary != null && Model.Evaluation.Location.Boundary.Count > 0)
+                {
+                    <text>
+                    SiteEvaluatorMap.drawPropertyBoundary([
+                        @foreach (var coord in Model.Evaluation.Location.Boundary)
+                        {
+                            @:{ latitude: @coord.Latitude, longitude: @coord.Longitude },
+                        }
+                    ]);
+                    </text>
+                }
+                
+                // Add borehole markers if available
+                @if (Model.Evaluation.Geotech?.NearbyBoreholes != null && Model.Evaluation.Geotech.NearbyBoreholes.Count > 0)
+                {
+                    <text>
+                    SiteEvaluatorMap.addBoreholeMarkers([
+                        @foreach (var bh in Model.Evaluation.Geotech.NearbyBoreholes.Take(20))
+                        {
+                            @:{ id: '@bh.Id', latitude: @bh.Latitude, longitude: @bh.Longitude, depth: @(bh.Depth ?? 0), distance: @bh.DistanceMeters },
+                        }
+                    ]);
+                    </text>
+                }
+                
+                // Add CPT markers if available
+                @if (Model.Evaluation.Geotech?.NearbyCpts != null && Model.Evaluation.Geotech.NearbyCpts.Count > 0)
+                {
+                    <text>
+                    SiteEvaluatorMap.addCptMarkers([
+                        @foreach (var cpt in Model.Evaluation.Geotech.NearbyCpts.Take(20))
+                        {
+                            @:{ id: '@cpt.Id', latitude: @cpt.Latitude, longitude: @cpt.Longitude, depth: @(cpt.Depth ?? 0), distance: @cpt.DistanceMeters },
+                        }
+                    ]);
+                    </text>
+                }
+                
+                // Add legend
+                SiteEvaluatorMap.addLegend();
+            });
+        </script>
+    }
 }

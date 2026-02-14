@@ -24,12 +24,23 @@ public class SiteEvaluatorWizardState
     public AddressInput Address { get; set; } = new();
 
     /// <summary>
-    /// Step 2: Property matching - existing evaluations or LINZ matches
+    /// Step 2: Property matching - existing jobs/evaluations or LINZ matches
     /// </summary>
     public PropertyMatchResult? PropertyMatch { get; set; }
 
     /// <summary>
-    /// The evaluation being built or retrieved.
+    /// The current job being worked on (new Job-based architecture).
+    /// </summary>
+    public EvaluationJob? Job { get; set; }
+
+    /// <summary>
+    /// The location for this job (shared across jobs).
+    /// </summary>
+    public PropertyLocation? Location { get; set; }
+
+    /// <summary>
+    /// [LEGACY] The evaluation being built or retrieved.
+    /// Kept for backwards compatibility during transition.
     /// </summary>
     public SiteEvaluation? Evaluation { get; set; }
 
@@ -47,6 +58,22 @@ public class SiteEvaluatorWizardState
     /// Last activity timestamp.
     /// </summary>
     public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Customer information for the job.
+    /// </summary>
+    public JobCustomerInfo CustomerInfo { get; set; } = new();
+}
+
+/// <summary>
+/// Customer information captured during wizard.
+/// </summary>
+public class JobCustomerInfo
+{
+    public string? CustomerName { get; set; }
+    public string? CustomerCompany { get; set; }
+    public string? CustomerEmail { get; set; }
+    public string? CustomerReference { get; set; }
 }
 
 /// <summary>
@@ -215,7 +242,12 @@ public enum SearchType
 public class PropertyMatchResult
 {
     /// <summary>
-    /// Existing evaluations found for this address/location.
+    /// Existing jobs found for this address/location.
+    /// </summary>
+    public List<ExistingJobMatch> ExistingJobs { get; set; } = [];
+
+    /// <summary>
+    /// [LEGACY] Existing evaluations found for this address/location.
     /// </summary>
     public List<ExistingEvaluationMatch> ExistingEvaluations { get; set; } = [];
 
@@ -225,19 +257,47 @@ public class PropertyMatchResult
     public List<LinzPropertyMatch> LinzMatches { get; set; } = [];
 
     /// <summary>
+    /// Existing location if found (can reuse for new job).
+    /// </summary>
+    public PropertyLocation? ExistingLocation { get; set; }
+
+    /// <summary>
     /// Selected property (after user selection or auto-select if only one).
     /// </summary>
     public LinzPropertyMatch? SelectedProperty { get; set; }
 
     /// <summary>
-    /// Whether user chose to create new evaluation vs using existing.
+    /// Whether user chose to create new job vs using existing.
     /// </summary>
     public bool CreateNew { get; set; } = true;
 
     /// <summary>
-    /// Selected existing evaluation ID (if using existing).
+    /// Selected existing job ID (if continuing existing job).
+    /// </summary>
+    public string? SelectedJobId { get; set; }
+
+    /// <summary>
+    /// [LEGACY] Selected existing evaluation ID (if using existing).
     /// </summary>
     public string? SelectedExistingId { get; set; }
+}
+
+/// <summary>
+/// Match with an existing job in the system.
+/// </summary>
+public class ExistingJobMatch
+{
+    public string Id { get; set; } = "";
+    public string JobReference { get; set; } = "";
+    public string Address { get; set; } = "";
+    public string? CustomerName { get; set; }
+    public string? CustomerCompany { get; set; }
+    public JobPurpose Purpose { get; set; }
+    public JobStatus Status { get; set; }
+    public DateTime CreatedDate { get; set; }
+    public DateTime? LastUpdated { get; set; }
+    public int CompletenessPercent { get; set; }
+    public int ReportCount { get; set; }
 }
 
 /// <summary>

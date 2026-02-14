@@ -1,6 +1,8 @@
 @model MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.EvaluationWizardModel
+@using MaxPayroll.SiteEvaluator.Models
 @{
     var propertyMatch = Model.WizardState.PropertyMatch;
+    var hasExistingJobs = propertyMatch?.ExistingJobs?.Count > 0;
     var hasExisting = propertyMatch?.ExistingEvaluations?.Count > 0;
     var hasLinzMatches = propertyMatch?.LinzMatches?.Count > 0;
 }
@@ -14,7 +16,11 @@
         <div>
             <h3>Select Property</h3>
             <p class="text-muted mb-0">
-                @if (hasExisting)
+                @if (hasExistingJobs)
+                {
+                    <span>We found existing jobs for this address. Continue with one or create a new job.</span>
+                }
+                else if (hasExisting)
                 {
                     <span>We found existing evaluations for this address. Choose to use one or create new.</span>
                 }
@@ -31,12 +37,106 @@
     </div>
 
     <form method="post" asp-page-handler="SelectProperty" id="propertyForm">
-        @if (hasExisting)
+        @if (hasExistingJobs)
         {
-            <!-- Existing Evaluations Section -->
+            <!-- Existing Jobs Section (NEW - Job-based architecture) -->
             <div class="mb-4">
                 <h5 class="d-flex align-items-center mb-3">
-                    <span class="badge bg-info me-2">@propertyMatch.ExistingEvaluations.Count</span>
+                    <span class="badge bg-primary me-2">@propertyMatch!.ExistingJobs.Count</span>
+                    Previous Jobs Found
+                </h5>
+                <p class="text-muted small">
+                    <i class="fa fa-info-circle me-1"></i>
+                    Continue working on an existing job or create a new one for a different customer/purpose.
+                </p>
+
+                <div class="row">
+                    @foreach (var job in propertyMatch.ExistingJobs)
+                    {
+                        var statusClass = job.Status switch
+                        {
+                            JobStatus.Complete => "bg-success",
+                            JobStatus.InProgress or JobStatus.DataCollection => "bg-warning text-dark",
+                            JobStatus.Cancelled => "bg-secondary",
+                            _ => "bg-info"
+                        };
+                        var purposeIcon = job.Purpose switch
+                        {
+                            JobPurpose.Purchase => "fa-shopping-cart",
+                            JobPurpose.Sale => "fa-tag",
+                            JobPurpose.Development => "fa-hard-hat",
+                            JobPurpose.Subdivision => "fa-th-large",
+                            JobPurpose.DueDiligence => "fa-clipboard-check",
+                            _ => "fa-file-alt"
+                        };
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="property-match-card existing-job" onclick="selectJob('@job.Id')">
+                                <input type="radio" name="SelectedJobId" value="@job.Id" class="job-radio" />
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span class="badge bg-dark me-2">@job.JobReference</span>
+                                        <span class="badge @statusClass">@job.Status</span>
+                                    </div>
+                                    <i class="fa @purposeIcon text-muted" title="@job.Purpose"></i>
+                                </div>
+                                <div class="fw-semibold mb-1">
+                                    @(job.Address.Length > 40 ? job.Address.Substring(0, 40) + "..." : job.Address)
+                                </div>
+                                <div class="small text-muted mb-2">
+                                    @if (!string.IsNullOrEmpty(job.CustomerName))
+                                    {
+                                        <div><i class="fa fa-user me-1"></i> @job.CustomerName</div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(job.CustomerCompany))
+                                    {
+                                        <div><i class="fa fa-building me-1"></i> @job.CustomerCompany</div>
+                                    }
+                                    <div><i class="fa fa-calendar me-1"></i> @job.CreatedDate.ToString("dd MMM yyyy")</div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="small">
+                                        <i class="fa fa-percentage me-1"></i> @job.CompletenessPercent% complete
+                                    </div>
+                                    @if (job.ReportCount > 0)
+                                    {
+                                        <span class="badge bg-light text-dark">
+                                            <i class="fa fa-file-pdf me-1"></i> @job.ReportCount report(s)
+                                        </span>
+                                    }
+                                </div>
+                                <div class="mt-2">
+                                    <div class="progress" style="height: 4px;">
+                                        <div class="progress-bar bg-success" style="width: @job.CompletenessPercent%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="alert alert-light border mt-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="createNewJobCheck" onchange="toggleCreateNewJob(this)">
+                        <label class="form-check-label" for="createNewJobCheck">
+                            <strong>Create a new job instead</strong>
+                            <div class="text-muted small">Start a fresh evaluation for a different customer or purpose</div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" name="CreateNew" id="createNewInput" value="false" />
+            
+            <hr class="my-4" />
+        }
+
+        @if (hasExisting && !hasExistingJobs)
+        {
+            <!-- Legacy: Existing Evaluations Section -->
+            <div class="mb-4">
+                <h5 class="d-flex align-items-center mb-3">
+                    <span class="badge bg-info me-2">@propertyMatch!.ExistingEvaluations.Count</span>
                     Existing Evaluations Found
                 </h5>
                 <p class="text-muted small">
@@ -89,7 +189,10 @@
                 </div>
             </div>
 
-            <input type="hidden" name="CreateNew" id="createNewInput" value="false" />
+            @if (!hasExistingJobs)
+            {
+                <input type="hidden" name="CreateNew" id="createNewInput" value="false" />
+            }
             
             <hr class="my-4" />
         }
@@ -97,10 +200,10 @@
         @if (hasLinzMatches)
         {
             <!-- LINZ Property Matches -->
-            <div class="mb-4">
+            <div class="mb-4" id="linzMatchesSection" style="@((hasExistingJobs || hasExisting) ? "display:none;" : "")">
                 <h5 class="d-flex align-items-center mb-3">
-                    <span class="badge bg-primary me-2">@propertyMatch.LinzMatches.Count</span>
-                    @(hasExisting ? "Or Select from LINZ Results" : "LINZ Property Matches")
+                    <span class="badge bg-primary me-2">@propertyMatch!.LinzMatches.Count</span>
+                    @(hasExistingJobs || hasExisting ? "Or Select from LINZ Results" : "LINZ Property Matches")
                 </h5>
 
                 @for (var i = 0; i < propertyMatch.LinzMatches.Count; i++)
@@ -145,7 +248,7 @@
             </div>
         }
 
-        @if (!hasExisting && !hasLinzMatches)
+        @if (!hasExistingJobs && !hasExisting && !hasLinzMatches)
         {
             <!-- No Results -->
             <div class="text-center py-5">
@@ -170,7 +273,14 @@
                     </button>
                 </form>
                 <button type="submit" class="btn btn-primary btn-lg">
-                    Start Evaluation
+                    @if (hasExistingJobs && !Model.CreateNew)
+                    {
+                        <span>Continue Job</span>
+                    }
+                    else
+                    {
+                        <span>Start New Job</span>
+                    }
                     <i class="fa fa-arrow-right ms-2"></i>
                 </button>
             </div>
@@ -178,5 +288,58 @@
     </form>
 </div>
 
-<!-- Scripts moved to wwwroot/js/site-evaluator-wizard.js
-     Functions selectExisting() and toggleCreateNew() are available globally -->
+<script>
+// Job selection
+function selectJob(jobId) {
+    document.querySelectorAll('.existing-job').forEach(el => el.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+    event.currentTarget.querySelector('input[type="radio"]').checked = true;
+    document.getElementById('createNewInput').value = 'false';
+    document.getElementById('createNewJobCheck').checked = false;
+    
+    // Hide LINZ matches when selecting existing job
+    const linzSection = document.getElementById('linzMatchesSection');
+    if (linzSection) linzSection.style.display = 'none';
+}
+
+function toggleCreateNewJob(checkbox) {
+    const createNewInput = document.getElementById('createNewInput');
+    const linzSection = document.getElementById('linzMatchesSection');
+    
+    if (checkbox.checked) {
+        createNewInput.value = 'true';
+        document.querySelectorAll('.existing-job').forEach(el => el.classList.remove('selected'));
+        document.querySelectorAll('.job-radio').forEach(r => r.checked = false);
+        if (linzSection) linzSection.style.display = 'block';
+    } else {
+        createNewInput.value = 'false';
+        if (linzSection) linzSection.style.display = 'none';
+    }
+}
+
+// Legacy evaluation selection (kept for backwards compatibility)
+function selectExisting(evalId) {
+    document.querySelectorAll('.existing-eval').forEach(el => el.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+    event.currentTarget.querySelector('input[type="radio"]').checked = true;
+    const createNewInput = document.getElementById('createNewInput');
+    if (createNewInput) createNewInput.value = 'false';
+    const createNewCheck = document.getElementById('createNewCheck');
+    if (createNewCheck) createNewCheck.checked = false;
+}
+
+function toggleCreateNew(checkbox) {
+    const createNewInput = document.getElementById('createNewInput');
+    const linzSection = document.getElementById('linzMatchesSection');
+    
+    if (checkbox.checked) {
+        if (createNewInput) createNewInput.value = 'true';
+        document.querySelectorAll('.existing-eval').forEach(el => el.classList.remove('selected'));
+        document.querySelectorAll('input[name="SelectedExistingId"]').forEach(r => r.checked = false);
+        if (linzSection) linzSection.style.display = 'block';
+    } else {
+        if (createNewInput) createNewInput.value = 'false';
+        if (linzSection) linzSection.style.display = 'none';
+    }
+}
+</script>

@@ -10,9 +10,14 @@ namespace MaxPayroll.SiteEvaluator.Pages.SiteEvaluator;
 /// <summary>
 /// Site Evaluation Wizard - guides users through property due diligence.
 /// 
+/// Now uses Job-based architecture where:
+/// - Each evaluation request = one Job
+/// - Locations are shared across jobs
+/// - Multiple jobs can exist for the same property
+/// 
 /// Steps:
 /// 1. Address Entry - Enter address, title, or coordinates
-/// 2. Property Match - Match to existing evaluations or select from LINZ results
+/// 2. Property Match - Match to existing jobs/locations or select from LINZ results
 /// 3. Zoning - Review zoning and planning data
 /// 4. Hazards - Review natural hazards (flood, liquefaction, seismic)
 /// 5. Geotech - Review nearby geotechnical data
@@ -22,17 +27,23 @@ namespace MaxPayroll.SiteEvaluator.Pages.SiteEvaluator;
 /// </summary>
 public class EvaluationWizardModel : PageModel
 {
+    private readonly IJobService _jobService;
+    private readonly ILocationService _locationService;
     private readonly ISiteSearchService _searchService;
     private readonly ILinzDataService _linzService;
     private readonly ISiteEvaluatorRepository _repository;
     private readonly ILogger<EvaluationWizardModel> _logger;
 
     public EvaluationWizardModel(
+        IJobService jobService,
+        ILocationService locationService,
         ISiteSearchService searchService,
         ILinzDataService linzService,
         ISiteEvaluatorRepository repository,
         ILogger<EvaluationWizardModel> logger)
     {
+        _jobService = jobService;
+        _locationService = locationService;
         _searchService = searchService;
         _linzService = linzService;
         _repository = repository;
@@ -103,11 +114,30 @@ public class EvaluationWizardModel : PageModel
     [BindProperty]
     public string? IntendedUseNotes { get; set; }
 
+    // === Customer Info Properties ===
+    
+    [BindProperty]
+    public string? CustomerName { get; set; }
+
+    [BindProperty]
+    public string? CustomerCompany { get; set; }
+
+    [BindProperty]
+    public string? CustomerEmail { get; set; }
+
+    [BindProperty]
+    public string? CustomerReference { get; set; }
+
+    // === Job Selection Properties ===
+
+    [BindProperty]
+    public string? SelectedJobId { get; set; }
+
     // === Messages ===
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(int step = 1, string? id = null)
+    public async Task<IActionResult> OnGetAsync(int step = 1, string? id = null, string? jobId = null)
     {
         ViewData["Title"] = "Site Evaluation Wizard";
         ViewData["NoIndex"] = true;
@@ -115,8 +145,42 @@ public class EvaluationWizardModel : PageModel
         // Load existing wizard state
         WizardState = TempData.GetSiteEvaluatorWizardState();
         
-        // If an ID is provided, load that evaluation
-        if (!string.IsNullOrEmpty(id))
+        // If a job ID is provided, load that job and continue
+        if (!string.IsNullOrEmpty(jobId))
+        {
+            var existingJob = await _jobService.GetJobAsync(jobId);
+            if (existingJob != null)
+            {
+                WizardState.Job = existingJob;
+                WizardState.Address = new AddressInput
+                {
+                    FullAddress = existingJob.Address,
+                    SearchType = Models.Wizard.SearchType.ExistingEvaluation
+                };
+                
+                // Load the location
+                var location = await _locationService.GetLocationAsync(existingJob.LocationId);
+                if (location != null)
+                {
+                    WizardState.Location = location;
+                    WizardState.Address.Latitude = location.Latitude;
+                    WizardState.Address.Longitude = location.Longitude;
+                    
+                    // Build evaluation from cached location data
+                    WizardState.Evaluation = BuildEvaluationFromLocation(location, existingJob);
+                }
+                
+                WizardState.PropertyMatch = new PropertyMatchResult
+                {
+                    CreateNew = false,
+                    SelectedJobId = jobId
+                };
+                
+                _logger.LogInformation("Loaded existing job {JobReference} for wizard", existingJob.JobReference);
+            }
+        }
+        // Legacy: If an evaluation ID is provided, load that evaluation
+        else if (!string.IsNullOrEmpty(id))
         {
             var existing = await _searchService.GetEvaluationAsync(id);
             if (existing != null)
@@ -150,11 +214,54 @@ public class EvaluationWizardModel : PageModel
             Longitude = WizardState.Address.Longitude;
             SearchType = WizardState.Address.SearchType.ToString().ToLowerInvariant();
         }
+        
+        // Pre-populate customer info
+        if (WizardState.CustomerInfo != null)
+        {
+            CustomerName = WizardState.CustomerInfo.CustomerName;
+            CustomerCompany = WizardState.CustomerInfo.CustomerCompany;
+            CustomerEmail = WizardState.CustomerInfo.CustomerEmail;
+            CustomerReference = WizardState.CustomerInfo.CustomerReference;
+        }
 
         // Save state back
         TempData.SetSiteEvaluatorWizardState(WizardState);
 
         return Page();
+    }
+
+    /// <summary>
+    /// Build a SiteEvaluation from cached location data (for display purposes).
+    /// </summary>
+    private static SiteEvaluation BuildEvaluationFromLocation(PropertyLocation location, EvaluationJob job)
+    {
+        return new SiteEvaluation
+        {
+            Id = job.Id,
+            UserId = job.CreatedByUserId,
+            CreatedDate = job.CreatedDate,
+            LastUpdated = job.LastUpdated,
+            Location = new SiteLocation
+            {
+                Address = location.Address,
+                LegalDescription = location.LegalDescription ?? string.Empty,
+                TitleReference = location.TitleReference,
+                Latitude = location.Latitude,
+                Longitude = location.Longitude,
+                Suburb = location.Suburb,
+                City = location.City,
+                TerritorialAuthority = location.TerritorialAuthority,
+                RegionalCouncil = location.RegionalCouncil,
+                Boundary = location.Boundary
+            },
+            Zoning = location.CachedZoning,
+            Hazards = location.CachedHazards,
+            Geotech = location.CachedGeotech,
+            Infrastructure = location.CachedInfrastructure,
+            Climate = location.CachedClimate,
+            Land = location.CachedLand,
+            Status = job.Status == JobStatus.Complete ? EvaluationStatus.Complete : EvaluationStatus.InProgress
+        };
     }
 
     /// <summary>
@@ -229,10 +336,39 @@ public class EvaluationWizardModel : PageModel
                 }
             };
 
+            // Save customer info
+            WizardState.CustomerInfo = new JobCustomerInfo
+            {
+                CustomerName = CustomerName?.Trim(),
+                CustomerCompany = CustomerCompany?.Trim(),
+                CustomerEmail = CustomerEmail?.Trim(),
+                CustomerReference = CustomerReference?.Trim()
+            };
+
             // Step 2: Search for property matches
             var matchResult = new PropertyMatchResult();
 
-            // Check for existing evaluations with similar address
+            // Search for existing jobs at this address
+            var existingJobs = await _jobService.SearchJobsAsync(Address.Split(',')[0]);
+            foreach (var job in existingJobs.Take(10))
+            {
+                matchResult.ExistingJobs.Add(new ExistingJobMatch
+                {
+                    Id = job.Id,
+                    JobReference = job.JobReference,
+                    Address = job.Address,
+                    CustomerName = job.CustomerName,
+                    CustomerCompany = job.CustomerCompany,
+                    Purpose = job.Purpose,
+                    Status = job.Status,
+                    CreatedDate = job.CreatedDate,
+                    LastUpdated = job.LastUpdated,
+                    CompletenessPercent = job.CompletenessPercent,
+                    ReportCount = job.Reports.Count
+                });
+            }
+
+            // Check for existing evaluations (legacy support)
             var existingEvaluations = await _repository.FindAsync<SiteEvaluation>(e => 
                 e.Location != null && 
                 e.Location.Address != null && 
@@ -266,8 +402,10 @@ public class EvaluationWizardModel : PageModel
                 });
             }
 
-            // Auto-select if only one high-confidence match
-            if (matchResult.LinzMatches.Count == 1 && matchResult.ExistingEvaluations.Count == 0)
+            // Auto-select if only one high-confidence match and no existing jobs
+            if (matchResult.LinzMatches.Count == 1 && 
+                matchResult.ExistingJobs.Count == 0 && 
+                matchResult.ExistingEvaluations.Count == 0)
             {
                 matchResult.SelectedProperty = matchResult.LinzMatches[0];
                 matchResult.CreateNew = true;
@@ -277,8 +415,8 @@ public class EvaluationWizardModel : PageModel
             WizardState.CurrentStep = 2;
             TempData.SetSiteEvaluatorWizardState(WizardState);
 
-            _logger.LogInformation("Address search completed: {Address}, Use: {UseCategory}/{Purpose}, {LinzMatches} LINZ matches, {ExistingMatches} existing", 
-                Address, useCategory, purpose, matchResult.LinzMatches.Count, matchResult.ExistingEvaluations.Count);
+            _logger.LogInformation("Address search completed: {Address}, Use: {UseCategory}/{Purpose}, {LinzMatches} LINZ matches, {ExistingJobs} existing jobs", 
+                Address, useCategory, purpose, matchResult.LinzMatches.Count, matchResult.ExistingJobs.Count);
 
             return RedirectToPage(new { step = 2 });
         }
@@ -302,7 +440,33 @@ public class EvaluationWizardModel : PageModel
         
         try
         {
-            // Check if using existing evaluation
+            // Check if continuing an existing job
+            if (!CreateNew && !string.IsNullOrEmpty(SelectedJobId))
+            {
+                var existingJob = await _jobService.GetJobAsync(SelectedJobId);
+                if (existingJob != null)
+                {
+                    WizardState.Job = existingJob;
+                    WizardState.PropertyMatch!.CreateNew = false;
+                    WizardState.PropertyMatch.SelectedJobId = SelectedJobId;
+                    
+                    // Load location and build evaluation for display
+                    var location = await _locationService.GetLocationAsync(existingJob.LocationId);
+                    if (location != null)
+                    {
+                        WizardState.Location = location;
+                        WizardState.Evaluation = BuildEvaluationFromLocation(location, existingJob);
+                    }
+                    
+                    WizardState.CurrentStep = 3;
+                    TempData.SetSiteEvaluatorWizardState(WizardState);
+                    
+                    _logger.LogInformation("Continuing existing job: {JobReference}", existingJob.JobReference);
+                    return RedirectToPage(new { step = 3 });
+                }
+            }
+
+            // Check if using existing evaluation (legacy)
             if (!CreateNew && !string.IsNullOrEmpty(SelectedExistingId))
             {
                 var existing = await _searchService.GetEvaluationAsync(SelectedExistingId);
@@ -318,35 +482,73 @@ public class EvaluationWizardModel : PageModel
                 }
             }
 
-            // Create new evaluation from selected property
+            // Create a new job
+            string selectedAddress;
             if (int.TryParse(SelectedPropertyIndex, out var index) && 
                 WizardState.PropertyMatch?.LinzMatches != null &&
                 index >= 0 && index < WizardState.PropertyMatch.LinzMatches.Count)
             {
                 var selectedProperty = WizardState.PropertyMatch.LinzMatches[index];
                 WizardState.PropertyMatch.SelectedProperty = selectedProperty;
-                WizardState.PropertyMatch.CreateNew = true;
-
-                // Run the full evaluation
-                var evaluation = await _searchService.SearchByAddressAsync(selectedProperty.FullAddress);
-                WizardState.Evaluation = evaluation;
-                
-                _logger.LogInformation("Created new evaluation: {Id} for {Address}", 
-                    evaluation.Id, selectedProperty.FullAddress);
+                selectedAddress = selectedProperty.FullAddress;
             }
             else if (WizardState.PropertyMatch?.SelectedProperty != null)
             {
-                // Use pre-selected property
-                var evaluation = await _searchService.SearchByAddressAsync(
-                    WizardState.PropertyMatch.SelectedProperty.FullAddress);
-                WizardState.Evaluation = evaluation;
+                selectedAddress = WizardState.PropertyMatch.SelectedProperty.FullAddress;
             }
             else
             {
-                // Fall back to original address search
-                var evaluation = await _searchService.SearchByAddressAsync(WizardState.Address.FullAddress);
-                WizardState.Evaluation = evaluation;
+                selectedAddress = WizardState.Address.FullAddress;
             }
+
+            // Map wizard purpose to job purpose
+            var jobPurpose = WizardState.Address.IntendedUse.Purpose switch
+            {
+                Models.Wizard.EvaluationPurpose.Sale => JobPurpose.Sale,
+                Models.Wizard.EvaluationPurpose.Development => JobPurpose.Development,
+                Models.Wizard.EvaluationPurpose.Subdivision => JobPurpose.Subdivision,
+                Models.Wizard.EvaluationPurpose.DueDiligence => JobPurpose.DueDiligence,
+                Models.Wizard.EvaluationPurpose.ResourceConsent => JobPurpose.ResourceConsent,
+                Models.Wizard.EvaluationPurpose.Insurance => JobPurpose.Insurance,
+                Models.Wizard.EvaluationPurpose.Valuation => JobPurpose.Valuation,
+                _ => JobPurpose.Purchase
+            };
+
+            // Create the job
+            var createRequest = new CreateJobRequest
+            {
+                Address = selectedAddress,
+                Title = $"Evaluation - {selectedAddress}",
+                CustomerName = WizardState.CustomerInfo.CustomerName,
+                CustomerCompany = WizardState.CustomerInfo.CustomerCompany,
+                CustomerEmail = WizardState.CustomerInfo.CustomerEmail,
+                CustomerReference = WizardState.CustomerInfo.CustomerReference,
+                Purpose = jobPurpose,
+                IntendedUse = WizardState.Address.IntendedUse.Category,
+                IntendedUseDetails = WizardState.Address.IntendedUse.SpecificUse,
+                IsNewDevelopment = WizardState.Address.IntendedUse.IsNewDevelopment,
+                ProposedHeight = WizardState.Address.IntendedUse.ProposedHeight,
+                ProposedCoverage = WizardState.Address.IntendedUse.ProposedCoverage,
+                ProposedUnits = WizardState.Address.IntendedUse.ProposedUnits,
+                ProposedGfa = WizardState.Address.IntendedUse.ProposedGfa,
+                InternalNotes = WizardState.Address.IntendedUse.Notes,
+                AutoStartDataCollection = true
+            };
+
+            var newJob = await _jobService.CreateJobAsync(createRequest);
+            WizardState.Job = newJob;
+            WizardState.PropertyMatch!.CreateNew = true;
+
+            // Load the location created for the job
+            var newLocation = await _locationService.GetLocationAsync(newJob.LocationId);
+            if (newLocation != null)
+            {
+                WizardState.Location = newLocation;
+                WizardState.Evaluation = BuildEvaluationFromLocation(newLocation, newJob);
+            }
+
+            _logger.LogInformation("Created new job: {JobReference} for {Address}", 
+                newJob.JobReference, selectedAddress);
 
             WizardState.CurrentStep = 3;
             TempData.SetSiteEvaluatorWizardState(WizardState);
@@ -401,6 +603,16 @@ public class EvaluationWizardModel : PageModel
         
         try
         {
+            // Complete the job if using new architecture
+            if (WizardState.Job != null)
+            {
+                await _jobService.UpdateJobStatusAsync(WizardState.Job.Id, JobStatus.Complete);
+                WizardState.Job.Status = JobStatus.Complete;
+                
+                _logger.LogInformation("Job completed: {JobReference}", WizardState.Job.JobReference);
+            }
+            
+            // Legacy: Update evaluation status
             if (WizardState.Evaluation != null)
             {
                 WizardState.Evaluation.Status = EvaluationStatus.Complete;
@@ -411,9 +623,15 @@ public class EvaluationWizardModel : PageModel
             WizardState.IsCompleted = true;
             TempData.SetSiteEvaluatorWizardState(WizardState);
 
-            _logger.LogInformation("Wizard completed for evaluation: {Id}", WizardState.Evaluation?.Id);
+            _logger.LogInformation("Wizard completed for job: {JobRef}, evaluation: {Id}", 
+                WizardState.Job?.JobReference, WizardState.Evaluation?.Id);
 
-            // Redirect to results page
+            // Redirect to results page - prefer job-based URL
+            if (WizardState.Job != null)
+            {
+                return RedirectToPage("/SiteEvaluator/JobDetails", new { jobId = WizardState.Job.Id });
+            }
+            
             return RedirectToPage("/SiteEvaluator/Search", new { id = WizardState.Evaluation?.Id });
         }
         catch (Exception ex)

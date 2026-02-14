@@ -285,6 +285,55 @@ if (location.IsCacheStale("zoning", maxAgeHours: 24))
 
 ---
 
+## ?? Wizard Integration
+
+The 8-step wizard now integrates with the Job-based architecture:
+
+### Step 1: Address Entry
+- User enters address, title reference, or coordinates
+- Can optionally provide customer info upfront
+
+### Step 2: Property Match (Updated)
+- Shows **existing jobs** for this address (not just evaluations)
+- User can:
+  - **Continue an existing job** - Resume work on previous job
+  - **Create new job** - Fresh evaluation for different customer/purpose
+- LINZ matches shown if creating new
+
+### Steps 3-7: Data Review
+- Data is loaded from the **PropertyLocation** cache
+- Refreshes update the shared location cache
+- All jobs for the same location benefit from refreshed data
+
+### Step 8: Summary & Reports
+- Job is marked as complete
+- Reports can be generated from the Job record
+
+### Wizard State
+
+The `SiteEvaluatorWizardState` now includes:
+
+```csharp
+public class SiteEvaluatorWizardState
+{
+    public EvaluationJob? Job { get; set; }           // NEW: Current job
+    public PropertyLocation? Location { get; set; }   // NEW: Shared location
+    public SiteEvaluation? Evaluation { get; set; }   // LEGACY: For display
+    public JobCustomerInfo CustomerInfo { get; set; } // NEW: Customer details
+    // ... other fields
+}
+```
+
+### URL Parameters
+
+```
+/SiteEvaluator/EvaluationWizard?step=1           # New wizard
+/SiteEvaluator/EvaluationWizard?jobId=job_123    # Continue existing job
+/SiteEvaluator/EvaluationWizard?id=eval_123      # Legacy evaluation support
+```
+
+---
+
 ## ?? Related Documentation
 
 - [Sample Engineering Report](../user-guides/Sample-Engineering-Report.md)

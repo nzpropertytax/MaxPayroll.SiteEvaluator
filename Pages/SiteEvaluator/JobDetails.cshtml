@@ -1,0 +1,524 @@
+@page "/SiteEvaluator/Job/{jobId}"
+@model MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.JobDetailsModel
+@using MaxPayroll.SiteEvaluator.Models
+
+@{
+    ViewData["Title"] = Model.Job != null ? $"Job {Model.Job.JobReference}" : "Job Details";
+    ViewData["NoIndex"] = true;
+    
+    var job = Model.Job;
+    var location = Model.Location;
+    var evaluation = Model.Evaluation;
+}
+
+@if (job == null)
+{
+    <div class="container py-5">
+        <div class="alert alert-warning">
+            <h5>Job not found</h5>
+            <p class="mb-0">The requested job could not be found.</p>
+            <a asp-page="/SiteEvaluator/Dashboard" class="btn btn-primary mt-3">Back to Dashboard</a>
+        </div>
+    </div>
+}
+else
+{
+    var statusClass = job.Status switch
+    {
+        JobStatus.Complete => "bg-success",
+        JobStatus.InProgress or JobStatus.DataCollection => "bg-warning text-dark",
+        JobStatus.Cancelled => "bg-secondary",
+        _ => "bg-info"
+    };
+
+    <div class="container-fluid py-4">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-page="/SiteEvaluator/Index">Site Evaluator</a></li>
+                <li class="breadcrumb-item"><a asp-page="/SiteEvaluator/Dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item active">@job.JobReference</li>
+            </ol>
+        </nav>
+
+        <!-- Alerts -->
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fa fa-check-circle me-2"></i>@Model.SuccessMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fa fa-exclamation-circle me-2"></i>@Model.ErrorMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h1 class="mb-1">
+                            <span class="badge @statusClass me-2">@job.Status</span>
+                            @job.JobReference
+                        </h1>
+                        <p class="text-muted mb-0">
+                            <i class="fa fa-map-marker-alt me-1"></i> @job.Address
+                        </p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        @if (job.Status != JobStatus.Complete)
+                        {
+                            <a asp-page="/SiteEvaluator/EvaluationWizard" asp-route-jobId="@job.Id" class="btn btn-success">
+                                <i class="fa fa-play me-1"></i> Continue Wizard
+                            </a>
+                        }
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fa fa-file-pdf me-1"></i> Generate Report
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <form method="post" asp-page-handler="GenerateReport">
+                                        <input type="hidden" name="jobId" value="@job.Id" />
+                                        <input type="hidden" name="reportType" value="full" />
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fa fa-file-alt me-2"></i>Full Report
+                                        </button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form method="post" asp-page-handler="GenerateReport">
+                                        <input type="hidden" name="jobId" value="@job.Id" />
+                                        <input type="hidden" name="reportType" value="summary" />
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fa fa-list me-2"></i>Summary Report
+                                        </button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form method="post" asp-page-handler="GenerateReport">
+                                        <input type="hidden" name="jobId" value="@job.Id" />
+                                        <input type="hidden" name="reportType" value="geotech" />
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fa fa-layer-group me-2"></i>Geotech Brief
+                                        </button>
+                                    </form>
+                                </li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <form method="post" asp-page-handler="GenerateReport">
+                                        <input type="hidden" name="jobId" value="@job.Id" />
+                                        <input type="hidden" name="reportType" value="duediligence" />
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fa fa-briefcase me-2"></i>Due Diligence Pack
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Main Content -->
+            <div class="col-lg-8">
+                <!-- Progress Card -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fa fa-tasks me-2"></i>Data Progress</h5>
+                            <form method="post" asp-page-handler="RefreshData" class="d-inline">
+                                <input type="hidden" name="jobId" value="@job.Id" />
+                                <input type="hidden" name="section" value="" />
+                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                    <i class="fa fa-sync me-1"></i> Refresh All
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress mb-3" style="height: 20px;">
+                            <div class="progress-bar bg-success" style="width: @job.CompletenessPercent%">
+                                @job.CompletenessPercent%
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3">
+                            @{
+                                var sections = new[]
+                                {
+                                    ("Location", job.DataStatus.Location, job.DataStatus.LocationUpdated, "fa-map-marker-alt"),
+                                    ("Zoning", job.DataStatus.Zoning, job.DataStatus.ZoningUpdated, "fa-city"),
+                                    ("Hazards", job.DataStatus.Hazards, job.DataStatus.HazardsUpdated, "fa-exclamation-triangle"),
+                                    ("Geotech", job.DataStatus.Geotech, job.DataStatus.GeotechUpdated, "fa-layer-group"),
+                                    ("Infrastructure", job.DataStatus.Infrastructure, job.DataStatus.InfrastructureUpdated, "fa-plug"),
+                                    ("Climate", job.DataStatus.Climate, job.DataStatus.ClimateUpdated, "fa-cloud-sun"),
+                                    ("Land", job.DataStatus.Land, job.DataStatus.LandUpdated, "fa-file-alt")
+                                };
+                            }
+                            
+                            @foreach (var (name, status, updated, icon) in sections)
+                            {
+                                var sectionStatusClass = status switch
+                                {
+                                    DataSectionStatus.Complete => "text-success",
+                                    DataSectionStatus.Partial => "text-warning",
+                                    DataSectionStatus.Failed => "text-danger",
+                                    _ => "text-muted"
+                                };
+                                var sectionIcon = status switch
+                                {
+                                    DataSectionStatus.Complete => "fa-check-circle",
+                                    DataSectionStatus.Partial => "fa-exclamation-circle",
+                                    DataSectionStatus.Failed => "fa-times-circle",
+                                    _ => "fa-clock"
+                                };
+                                
+                                <div class="col-md-4 col-lg-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa @icon @sectionStatusClass me-2"></i>
+                                        <div>
+                                            <div class="fw-semibold small">@name</div>
+                                            <small class="@sectionStatusClass">
+                                                <i class="fa @sectionIcon"></i>
+                                                @status
+                                            </small>
+                                            @if (updated.HasValue)
+                                            {
+                                                <br /><small class="text-muted">@updated.Value.ToString("dd MMM HH:mm")</small>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Summary Tabs -->
+                @if (evaluation != null)
+                {
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-white">
+                            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                                <li class="nav-item">
+                                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#zoningTab">Zoning</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#hazardsTab">Hazards</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#geotechTab">Geotech</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#infraTab">Infrastructure</button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body tab-content">
+                            <!-- Zoning Tab -->
+                            <div class="tab-pane fade show active" id="zoningTab">
+                                @if (evaluation.Zoning != null)
+                                {
+                                    <table class="table table-sm">
+                                        <tr><th style="width:35%">Zone</th><td>@evaluation.Zoning.Zone</td></tr>
+                                        <tr><th>Zone Code</th><td>@evaluation.Zoning.ZoneCode</td></tr>
+                                        @if (evaluation.Zoning.MaxHeight.HasValue)
+                                        {
+                                            <tr><th>Max Height</th><td>@evaluation.Zoning.MaxHeight m</td></tr>
+                                        }
+                                        @if (evaluation.Zoning.MaxCoverage.HasValue)
+                                        {
+                                            <tr><th>Max Coverage</th><td>@evaluation.Zoning.MaxCoverage%</td></tr>
+                                        }
+                                        <tr><th>District Plan</th><td>@evaluation.Zoning.DistrictPlan</td></tr>
+                                    </table>
+                                }
+                                else
+                                {
+                                    <p class="text-muted">No zoning data available.</p>
+                                }
+                            </div>
+                            
+                            <!-- Hazards Tab -->
+                            <div class="tab-pane fade" id="hazardsTab">
+                                @if (evaluation.Hazards != null)
+                                {
+                                    <table class="table table-sm">
+                                        @if (evaluation.Hazards.Flooding != null)
+                                        {
+                                            <tr><th style="width:35%">Flood Zone</th><td>@evaluation.Hazards.Flooding.Zone</td></tr>
+                                        }
+                                        @if (evaluation.Hazards.Liquefaction != null)
+                                        {
+                                            <tr><th>Liquefaction</th><td>@evaluation.Hazards.Liquefaction.Category - @evaluation.Hazards.Liquefaction.Description</td></tr>
+                                        }
+                                        @if (evaluation.Hazards.Seismic != null)
+                                        {
+                                            <tr><th>Seismic Zone</th><td>@evaluation.Hazards.Seismic.Zone</td></tr>
+                                        @if (evaluation.Hazards.Seismic.ZoneFactor.HasValue)
+                                        {
+                                            <tr><th>Z-Factor</th><td>@evaluation.Hazards.Seismic.ZoneFactor</td></tr>
+                                        }
+                                        }
+                                    </table>
+                                }
+                                else
+                                {
+                                    <p class="text-muted">No hazard data available.</p>
+                                }
+                            </div>
+                            
+                            <!-- Geotech Tab -->
+                            <div class="tab-pane fade" id="geotechTab">
+                                @if (evaluation.Geotech != null)
+                                {
+                                    <table class="table table-sm">
+                                        <tr><th style="width:35%">Site Class</th><td>@(evaluation.Geotech.SiteClass ?? "Not determined")</td></tr>
+                                        <tr><th>Nearby Boreholes</th><td>@evaluation.Geotech.NearbyBoreholes.Count within 500m</td></tr>
+                                        <tr><th>Nearby CPTs</th><td>@evaluation.Geotech.NearbyCpts.Count within 500m</td></tr>
+                                        <tr><th>Nearby Reports</th><td>@evaluation.Geotech.NearbyReports.Count</td></tr>
+                                    </table>
+                                    @if (evaluation.Geotech.GeotechInvestigationRequired)
+                                    {
+                                        <div class="alert alert-warning mb-0">
+                                            <i class="fa fa-exclamation-triangle me-1"></i>
+                                            Site-specific geotechnical investigation recommended
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <p class="text-muted">No geotechnical data available.</p>
+                                }
+                            </div>
+                            
+                            <!-- Infrastructure Tab -->
+                            <div class="tab-pane fade" id="infraTab">
+                                @if (evaluation.Infrastructure != null)
+                                {
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th style="width:35%">Water Supply</th>
+                                            <td class="@(evaluation.Infrastructure.Water?.Available == true ? "text-success" : "text-muted")">
+                                                @(evaluation.Infrastructure.Water?.Available == true ? "? Available" : "? Not available")
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Wastewater</th>
+                                            <td class="@(evaluation.Infrastructure.Wastewater?.Available == true ? "text-success" : "text-muted")">
+                                                @(evaluation.Infrastructure.Wastewater?.Available == true ? "? Available" : "? Not available")
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Stormwater</th>
+                                            <td class="@(evaluation.Infrastructure.Stormwater?.Available == true ? "text-success" : "text-muted")">
+                                                @(evaluation.Infrastructure.Stormwater?.Available == true ? "? Available" : "? Not available")
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Power</th>
+                                            <td class="@(evaluation.Infrastructure.Power?.Available == true ? "text-success" : "text-muted")">
+                                                @(evaluation.Infrastructure.Power?.Available == true ? "? Available" : "? Not available")
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Fibre</th>
+                                            <td class="@(evaluation.Infrastructure.Communications?.FibreAvailable == true ? "text-success" : "text-muted")">
+                                                @(evaluation.Infrastructure.Communications?.FibreAvailable == true ? "? Available" : "? Not available")
+                                            </td>
+                                        </tr>
+                                    </table>
+                                }
+                                else
+                                {
+                                    <p class="text-muted">No infrastructure data available.</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Reports -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fa fa-file-pdf me-2"></i>Generated Reports</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (job.Reports.Count == 0)
+                        {
+                            <p class="text-muted text-center py-3">
+                                No reports generated yet. Use the "Generate Report" button above.
+                            </p>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Report</th>
+                                            <th>Type</th>
+                                            <th>Generated</th>
+                                            <th>Size</th>
+                                            <th class="text-end">Download</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var report in job.Reports.OrderByDescending(r => r.GeneratedDate))
+                                        {
+                                            <tr>
+                                                <td>@report.Title</td>
+                                                <td><span class="badge bg-light text-dark">@report.Type</span></td>
+                                                <td><small>@report.GeneratedDate.ToString("dd MMM yyyy HH:mm")</small></td>
+                                                <td><small>@(report.FileSize / 1024) KB</small></td>
+                                                <td class="text-end">
+                                                    <a asp-page-handler="DownloadReport" 
+                                                       asp-route-jobId="@job.Id" 
+                                                       asp-route-reportId="@report.Id"
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="fa fa-download"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Job Details Card -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fa fa-info-circle me-2"></i>Job Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <th>Created</th>
+                                <td>@job.CreatedDate.ToString("dd MMM yyyy HH:mm")</td>
+                            </tr>
+                            @if (job.LastUpdated.HasValue)
+                            {
+                                <tr>
+                                    <th>Updated</th>
+                                    <td>@job.LastUpdated.Value.ToString("dd MMM yyyy HH:mm")</td>
+                                </tr>
+                            }
+                            <tr>
+                                <th>Purpose</th>
+                                <td>@job.Purpose</td>
+                            </tr>
+                            <tr>
+                                <th>Intended Use</th>
+                                <td>@job.IntendedUse</td>
+                            </tr>
+                            @if (job.IsNewDevelopment)
+                            {
+                                <tr>
+                                    <th>Development</th>
+                                    <td>New Development</td>
+                                </tr>
+                            }
+                        </table>
+                        
+                        @if (job.Status != JobStatus.Complete)
+                        {
+                            <form method="post" asp-page-handler="CompleteJob" class="mt-3">
+                                <input type="hidden" name="jobId" value="@job.Id" />
+                                <button type="submit" class="btn btn-success w-100"
+                                        onclick="return confirm('Mark this job as complete?')">
+                                    <i class="fa fa-check me-1"></i> Mark Complete
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+
+                <!-- Customer Info Card -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fa fa-user me-2"></i>Customer Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" asp-page-handler="Update">
+                            <input type="hidden" name="jobId" value="@job.Id" />
+                            
+                            <div class="mb-3">
+                                <label class="form-label small">Customer Name</label>
+                                <input type="text" class="form-control form-control-sm" 
+                                       asp-for="CustomerName" placeholder="Contact name" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">Company</label>
+                                <input type="text" class="form-control form-control-sm" 
+                                       asp-for="CustomerCompany" placeholder="Company name" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">Email</label>
+                                <input type="email" class="form-control form-control-sm" 
+                                       asp-for="CustomerEmail" placeholder="email@example.com" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">Reference</label>
+                                <input type="text" class="form-control form-control-sm" 
+                                       asp-for="CustomerReference" placeholder="PO / File number" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">Internal Notes</label>
+                                <textarea class="form-control form-control-sm" rows="2"
+                                          asp-for="InternalNotes" placeholder="Notes..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="fa fa-save me-1"></i> Save Changes
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Location Card -->
+                @if (location != null)
+                {
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="fa fa-map-marker-alt me-2"></i>Location</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="fw-semibold mb-1">@location.Address</p>
+                            @if (!string.IsNullOrEmpty(location.LegalDescription))
+                            {
+                                <p class="text-muted small mb-1">@location.LegalDescription</p>
+                            }
+                            @if (!string.IsNullOrEmpty(location.TitleReference))
+                            {
+                                <p class="text-muted small mb-1">Title: @location.TitleReference</p>
+                            }
+                            <p class="text-muted small font-monospace mb-0">
+                                @location.Latitude.ToString("F6"), @location.Longitude.ToString("F6")
+                            </p>
+                            @if (!string.IsNullOrEmpty(location.TerritorialAuthority))
+                            {
+                                <hr />
+                                <p class="small mb-0">
+                                    <i class="fa fa-building me-1"></i> @location.TerritorialAuthority
+                                </p>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
