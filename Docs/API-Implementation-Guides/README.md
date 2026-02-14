@@ -59,12 +59,12 @@
 |---------|-----------|----------------|-------|-------|
 | LINZ Address | ? | ? 90% | ? | Working with API key |
 | LINZ Landonline | ? | ? 80% | ? | Fallback data when no subscription |
-| NZGD | ? | ?? 30% | ? | API structure ready |
+| NZGD | ? | ? 85% | ? | Regional fallback data for Canterbury, Auckland, Wellington |
 | CCC GIS | ? | ? 70% | ? | Zoning, hazards work |
 | Auckland GIS | ? | ? 80% | ? | Zoning, hazards, infrastructure |
 | Wellington GIS | ? | ? 85% | ? | Zoning, hazards, seismic |
-| GNS Science | ? | ? 80% | ? | Static Z-values + fault data |
-| NIWA | ? | ? 80% | ? | HIRDS estimates, wind zones |
+| GNS Science | ? | ? 90% | ? | Z-values, fault data, GeoNet quakes |
+| NIWA | ? | ? 90% | ? | HIRDS estimates, wind zones, climate summary |
 
 ---
 
