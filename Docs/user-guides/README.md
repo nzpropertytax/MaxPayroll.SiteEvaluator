@@ -1,18 +1,6 @@
-# User Guides ??
+# Site Evaluator - User Guides
 
-<div align="center">
-
-```
-????????????????????????????????????????????????????????????????????
-?                                                                  ?
-?   ?? SITE EVALUATOR USER GUIDES                                  ?
-?                                                                  ?
-?   Documentation for engineers and property professionals         ?
-?                                                                  ?
-????????????????????????????????????????????????????????????????????
-```
-
-</div>
+Documentation for users of the Site Evaluator system.
 
 ---
 
@@ -20,89 +8,73 @@
 
 | Document | Description |
 |----------|-------------|
-| [Site Evaluation Wizard Guide](Site-Evaluation-Wizard-Guide.md) | Complete walkthrough of the 8-step wizard |
-| [Engineering Report Guide](Engineering-Report-Guide.md) | Using reports for client deliverables |
-| [Sample Engineering Report](Sample-Engineering-Report.md) | **NEW** — Full example report in consultancy format |
-| [Data Sources Reference](Data-Sources-Reference.md) | Understanding data sources and accuracy |
+| [Site Evaluation Wizard Guide](Site-Evaluation-Wizard-Guide.md) | Step-by-step guide to using the evaluation wizard |
+| [Case Study: 360 Barbadoes Street](Case-Study-360-Barbadoes.md) | Primary test case - multi-unit residential development |
+| [Data Sources Reference](Data-Sources-Reference.md) | Where the data comes from |
+| [Engineering Report Guide](Engineering-Report-Guide.md) | Understanding the generated reports |
+| [Sample Engineering Report](Sample-Engineering-Report.md) | Example report output |
 
 ---
 
 ## ?? Quick Start
 
-### Starting a New Evaluation
+### Using the Wizard
 
-1. Navigate to **Site Evaluator** ? **New Evaluation**
-2. Enter the property address
-3. Follow the 8-step wizard
-4. Download reports for client delivery
+1. Navigate to `/SiteEvaluator/EvaluationWizard`
+2. Enter a New Zealand address
+3. Select the matching property
+4. Step through each data section
+5. Generate your report
 
-### The 8-Step Wizard
+### Quick Search
 
-| Step | Name | What You'll Do |
-|------|------|----------------|
-| 1 | **Address** | Enter address, title, or coordinates |
-| 2 | **Property Match** | Select property from LINZ results |
-| 3 | **Zoning** | Review zoning and planning data |
-| 4 | **Hazards** | Review natural hazards |
-| 5 | **Geotech** | Review nearby geotechnical data |
-| 6 | **Infrastructure** | Review 3 Waters and utilities |
-| 7 | **Climate** | Review wind zones and rainfall |
-| 8 | **Summary** | Complete and generate reports |
+1. Navigate to `/SiteEvaluator/Search`
+2. Enter an address directly
+3. View instant results
 
 ---
 
-## ?? Typical Use Cases
+## ?? Test Data
 
-| User | Use Case | Recommended Report |
-|------|----------|-------------------|
-| Civil Engineer | Pre-purchase assessment | Full Report |
-| Geotechnical Engineer | Site investigation scoping | Geotech Brief |
-| Property Developer | Development feasibility | Full Report |
-| Valuer | Risk assessment | Summary Report |
-| Lawyer | Due diligence | Due Diligence Pack |
+When API keys are not configured, the system uses mock data for testing:
 
----
+### Primary Case Study
+**360 Barbadoes Street, Christchurch** - A multi-unit residential development site with:
+- Residential Medium Density (RMD) zoning
+- TC2 liquefaction category
+- Full infrastructure available
+- Comprehensive engineering assessment data
 
-## ?? Report Types
+Type "360 Barbadoes" or "Barbadoes" in the address field to test.
 
-| Report | Content | Use For |
-|--------|---------|---------|
-| **Full Report** | All sections with detailed data | Client deliverables, detailed assessment |
-| **Summary Report** | Key findings only | Quick overview, initial screening |
-| **Geotech Brief** | Geotechnical focus | Site investigation planning |
-| **Due Diligence Pack** | Full report + appendices | Legal due diligence |
-
-?? See [Sample Engineering Report](Sample-Engineering-Report.md) for a complete example.
+### Other Test Addresses
+- 90 Armagh Street, Christchurch
+- 1 Worcester Boulevard, Christchurch
+- 1 Queen Street, Auckland
+- 1 Willis Street, Wellington
 
 ---
 
-## ?? Data Refresh
+## ?? Understanding Results
 
-You can refresh any data section at any time:
+### Hazard Categories
 
-1. Click the **? Refresh** button on any step
-2. Latest data is retrieved from source APIs
-3. Evaluation updates with new data
+| Category | Meaning |
+|----------|---------|
+| ?? TC1 | Low liquefaction risk |
+| ?? TC2 | Moderate liquefaction risk - engineering required |
+| ?? TC3 | High liquefaction risk - specific foundation design required |
 
-**When to refresh:**
-- Data seems outdated
-- New council information available
-- After a significant time period
+### Data Completeness
 
----
-
-## ?? Getting Help
-
-| Issue | Action |
-|-------|--------|
-| Address not found | Try different format, use coordinates |
-| Data missing | Use refresh button, check API coverage |
-| Report error | Contact support with evaluation ID |
+The completeness percentage shows how much data was retrieved:
+- **80-100%** - Comprehensive data available
+- **50-79%** - Partial data, some gaps
+- **<50%** - Limited data, investigation recommended
 
 ---
 
-## ?? Related Documentation
+## Related Documentation
 
-- [API Implementation Guides](../API-Implementation-Guides/README.md)
-- [Development Guides](../development/README.md)
-- [Main Documentation](../README.md)
+- [API Credentials Guide](../admin/API-Credentials-Guide.md) - Setting up external API connections
+- [Service Implementation Guide](../development/Service-Implementation-Guide.md) - Technical details

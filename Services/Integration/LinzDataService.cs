@@ -31,6 +31,15 @@ public class LinzDataService : ILinzDataService
 
     public async Task<SiteLocation?> LookupAddressAsync(string address, CancellationToken ct = default)
     {
+        // Check if API key is configured
+        var apiKey = _configuration["SiteEvaluator:Linz:ApiKey"] ?? _configuration["Linz:ApiKey"];
+        
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            _logger.LogDebug("LINZ API key not configured - using mock data for: {Address}", address);
+            return MockDataProvider.GetSiteLocation(address);
+        }
+        
         try
         {
             // Use LINZ Address API
@@ -39,15 +48,18 @@ public class LinzDataService : ILinzDataService
             
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("LINZ geocode failed: {StatusCode}", response.StatusCode);
-                return null;
+                _logger.LogWarning("LINZ geocode failed: {StatusCode} - falling back to mock data", response.StatusCode);
+                return MockDataProvider.GetSiteLocation(address);
             }
             
             var result = await response.Content.ReadFromJsonAsync<LinzGeocodeResponse>(ct);
             var firstResult = result?.Results?.FirstOrDefault();
             
             if (firstResult == null)
-                return null;
+            {
+                // Fall back to mock data if no results
+                return MockDataProvider.GetSiteLocation(address);
+            }
 
             return new SiteLocation
             {
@@ -62,8 +74,8 @@ public class LinzDataService : ILinzDataService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error looking up address: {Address}", address);
-            return null;
+            _logger.LogError(ex, "Error looking up address: {Address} - falling back to mock data", address);
+            return MockDataProvider.GetSiteLocation(address);
         }
     }
 
@@ -397,6 +409,15 @@ public class LinzDataService : ILinzDataService
 
     public async Task<List<AddressSuggestion>> GetAddressSuggestionsAsync(string query, CancellationToken ct = default)
     {
+        // Check if API key is configured
+        var apiKey = _configuration["SiteEvaluator:Linz:ApiKey"] ?? _configuration["Linz:ApiKey"];
+        
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            _logger.LogDebug("LINZ API key not configured - using mock data for: {Query}", query);
+            return MockDataProvider.GetAddressSuggestions(query);
+        }
+        
         try
         {
             // Use LINZ Address API for autocomplete suggestions
@@ -405,14 +426,20 @@ public class LinzDataService : ILinzDataService
             
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("LINZ autocomplete failed: {StatusCode}", response.StatusCode);
-                return [];
+                _logger.LogWarning("LINZ autocomplete failed: {StatusCode} - falling back to mock data", response.StatusCode);
+                return MockDataProvider.GetAddressSuggestions(query);
             }
             
             var result = await response.Content.ReadFromJsonAsync<LinzGeocodeResponse>(ct);
             
-            if (result?.Results == null)
+            if (result?.Results == null || result.Results.Count == 0)
+            {
+                // Fall back to mock data if no results
+                var mockResults = MockDataProvider.GetAddressSuggestions(query);
+                if (mockResults.Count > 0)
+                    return mockResults;
                 return [];
+            }
 
             return result.Results.Select(r => new AddressSuggestion
             {
@@ -425,8 +452,8 @@ public class LinzDataService : ILinzDataService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting address suggestions for: {Query}", query);
-            return [];
+            _logger.LogError(ex, "Error getting address suggestions for: {Query} - falling back to mock data", query);
+            return MockDataProvider.GetAddressSuggestions(query);
         }
     }
 

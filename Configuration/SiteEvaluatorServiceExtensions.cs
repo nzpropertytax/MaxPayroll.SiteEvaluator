@@ -23,6 +23,9 @@ public static class SiteEvaluatorServiceExtensions
         // Repository (singleton - holds LiteDB connection)
         services.AddSingleton<ISiteEvaluatorRepository, SiteEvaluatorRepository>();
 
+        // External credential service (singleton - manages API credentials in DB)
+        services.AddSingleton<IExternalCredentialService, ExternalCredentialService>();
+
         // Core services
         services.AddScoped<IJobService, JobService>();
         services.AddScoped<ILocationService, LocationService>();
@@ -31,6 +34,7 @@ public static class SiteEvaluatorServiceExtensions
         services.AddScoped<ISubscriptionService, SubscriptionService>();
 
         // Integration services - HttpClient factory pattern
+        // Note: These services will also check the database for credentials via IExternalCredentialService
         services.AddHttpClient<ILinzDataService, LinzDataService>(client =>
         {
             client.BaseAddress = new Uri(configuration["SiteEvaluator:Linz:BaseUrl"] ?? "https://data.linz.govt.nz");
@@ -66,6 +70,19 @@ public static class SiteEvaluatorServiceExtensions
         services.Configure<SiteEvaluatorOptions>(configuration.GetSection("SiteEvaluator"));
 
         return services;
+    }
+
+    /// <summary>
+    /// Seeds default API credential entries in the database.
+    /// Call this during application startup.
+    /// </summary>
+    public static async Task SeedSiteEvaluatorCredentialsAsync(this IServiceProvider services)
+    {
+        var credentialService = services.GetService<IExternalCredentialService>();
+        if (credentialService != null)
+        {
+            await credentialService.SeedDefaultCredentialsAsync();
+        }
     }
 
     /// <summary>

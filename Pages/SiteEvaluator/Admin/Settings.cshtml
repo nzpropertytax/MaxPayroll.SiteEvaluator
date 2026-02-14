@@ -165,13 +165,23 @@
 
             <!-- API Key Configuration Instructions -->
             <div class="card shadow-sm mt-4">
-                <div class="card-header bg-white">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fa fa-key me-2"></i>API Key Configuration</h5>
+                    <a href="/SiteEvaluator/Admin/Credentials" class="btn btn-primary btn-sm">
+                        <i class="fa fa-database me-1"></i> Manage Credentials in Database
+                    </a>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info mb-4">
+                    <div class="alert alert-success mb-4">
+                        <i class="fa fa-shield-alt me-2"></i>
+                        <strong>Recommended:</strong> Store API credentials in the <a href="/SiteEvaluator/Admin/Credentials" class="alert-link">database</a> for better security. 
+                        Credentials are encrypted at rest with AES-256.
+                    </div>
+
+                    <div class="alert alert-secondary mb-4">
                         <i class="fa fa-info-circle me-2"></i>
-                        API keys should be configured in <code>appsettings.json</code> or environment variables for security.
+                        <strong>Legacy:</strong> API keys can also be configured in <code>appsettings.json</code> or environment variables.
+                        Database credentials take priority over config file settings.
                     </div>
 
                     <h6 class="text-primary mb-3">Required Configuration</h6>
