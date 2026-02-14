@@ -1,0 +1,297 @@
+@page "/Search"
+@page "/Search/{Address}"
+@using MaxPayroll.SiteEvaluator.Models
+
+<PageTitle>Site Search Results - Max Site Evaluator</PageTitle>
+
+<div class="search-results-page">
+    <div class="search-header">
+        <form method="get" action="/Search" class="inline-search-form">
+            <input type="text" 
+                   name="address" 
+                   value="@Address" 
+                   placeholder="Enter address..." 
+                   class="search-input" />
+            <button type="submit" class="search-button">Search</button>
+        </form>
+    </div>
+
+    @if (string.IsNullOrEmpty(Address))
+    {
+        <div class="no-search">
+            <h2>Enter an address to search</h2>
+            <p>Type a New Zealand address in the search box above to get started.</p>
+        </div>
+    }
+    else if (IsLoading)
+    {
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Searching for site data...</p>
+        </div>
+    }
+    else if (Evaluation != null)
+    {
+        <div class="results-container">
+            <div class="results-sidebar">
+                <div class="location-summary">
+                    <h2>?? @Evaluation.Location.Address</h2>
+                    @if (!string.IsNullOrEmpty(Evaluation.Location.LegalDescription))
+                    {
+                        <p class="legal-desc">@Evaluation.Location.LegalDescription</p>
+                    }
+                    <p class="coords">@Evaluation.Location.Latitude.ToString("F6"), @Evaluation.Location.Longitude.ToString("F6")</p>
+                </div>
+
+                <div class="completeness-card">
+                    <h3>Data Completeness</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: @Evaluation.Completeness.CompletionPercentage%"></div>
+                    </div>
+                    <p>@Evaluation.Completeness.CompletionPercentage.ToString("F0")% complete</p>
+                </div>
+
+                <div class="actions-card">
+                    <h3>Generate Reports</h3>
+                    <a href="/api/reports/@Evaluation.Id/summary" class="btn btn-outline" target="_blank">
+                        ?? Summary Report
+                    </a>
+                    <a href="/api/reports/@Evaluation.Id/full" class="btn btn-outline" target="_blank">
+                        ?? Full Report
+                    </a>
+                    <a href="/api/reports/@Evaluation.Id/geotech" class="btn btn-outline" target="_blank">
+                        ?? Geotech Brief
+                    </a>
+                </div>
+            </div>
+
+            <div class="results-main">
+                @if (Evaluation.Zoning != null)
+                {
+                    <div class="data-section">
+                        <h3>??? Zoning & Planning</h3>
+                        <table class="data-table">
+                            <tr>
+                                <th>Zone</th>
+                                <td>@Evaluation.Zoning.Zone</td>
+                            </tr>
+                            <tr>
+                                <th>Max Height</th>
+                                <td>@(Evaluation.Zoning.MaxHeight?.ToString() ?? "Not specified")m</td>
+                            </tr>
+                            <tr>
+                                <th>Max Coverage</th>
+                                <td>@(Evaluation.Zoning.MaxCoverage?.ToString() ?? "Not specified")%</td>
+                            </tr>
+                            <tr>
+                                <th>District Plan</th>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(Evaluation.Zoning.DistrictPlanLink))
+                                    {
+                                        <a href="@Evaluation.Zoning.DistrictPlanLink" target="_blank">View Plan ?</a>
+                                    }
+                                    else
+                                    {
+                                        @Evaluation.Zoning.DistrictPlan
+                                    }
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                }
+
+                @if (Evaluation.Hazards != null)
+                {
+                    <div class="data-section">
+                        <h3>?? Natural Hazards</h3>
+                        <table class="data-table">
+                            @if (Evaluation.Hazards.Flooding != null)
+                            {
+                                <tr>
+                                    <th>Flood Zone</th>
+                                    <td class="@GetHazardClass(Evaluation.Hazards.Flooding.Zone)">
+                                        @Evaluation.Hazards.Flooding.Zone
+                                    </td>
+                                </tr>
+                            }
+                            @if (Evaluation.Hazards.Liquefaction != null)
+                            {
+                                <tr>
+                                    <th>Liquefaction</th>
+                                    <td class="@GetLiquefactionClass(Evaluation.Hazards.Liquefaction.Category)">
+                                        @Evaluation.Hazards.Liquefaction.Category - @Evaluation.Hazards.Liquefaction.Description
+                                    </td>
+                                </tr>
+                            }
+                            @if (Evaluation.Hazards.Seismic != null)
+                            {
+                                <tr>
+                                    <th>Seismic Zone</th>
+                                    <td>@Evaluation.Hazards.Seismic.Zone</td>
+                                </tr>
+                            }
+                        </table>
+                    </div>
+                }
+
+                @if (Evaluation.Geotech != null)
+                {
+                    <div class="data-section">
+                        <h3>?? Geotechnical Data</h3>
+                        <table class="data-table">
+                            <tr>
+                                <th>Site Class</th>
+                                <td>@(Evaluation.Geotech.SiteClass ?? "Not determined")</td>
+                            </tr>
+                            <tr>
+                                <th>Nearby Boreholes</th>
+                                <td>@Evaluation.Geotech.NearbyBoreholes.Count within 500m</td>
+                            </tr>
+                            <tr>
+                                <th>Nearby CPTs</th>
+                                <td>@Evaluation.Geotech.NearbyCpts.Count within 500m</td>
+                            </tr>
+                            <tr>
+                                <th>Nearby Reports</th>
+                                <td>@Evaluation.Geotech.NearbyReports.Count</td>
+                            </tr>
+                        </table>
+                        @if (Evaluation.Geotech.GeotechInvestigationRequired)
+                        {
+                            <div class="alert alert-warning">
+                                ?? Site-specific geotechnical investigation recommended
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (Evaluation.Infrastructure != null)
+                {
+                    <div class="data-section">
+                        <h3>?? Infrastructure</h3>
+                        <table class="data-table">
+                            <tr>
+                                <th>Water Supply</th>
+                                <td class="@(Evaluation.Infrastructure.Water?.Available == true ? "available" : "unavailable")">
+                                    @(Evaluation.Infrastructure.Water?.Available == true ? "? Available" : "? Not available")
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Wastewater</th>
+                                <td class="@(Evaluation.Infrastructure.Wastewater?.Available == true ? "available" : "unavailable")">
+                                    @(Evaluation.Infrastructure.Wastewater?.Available == true ? "? Available" : "? Not available")
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Stormwater</th>
+                                <td class="@(Evaluation.Infrastructure.Stormwater?.Available == true ? "available" : "unavailable")">
+                                    @(Evaluation.Infrastructure.Stormwater?.Available == true ? "? Available" : "? Not available")
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Power</th>
+                                <td class="@(Evaluation.Infrastructure.Power?.Available == true ? "available" : "unavailable")">
+                                    @(Evaluation.Infrastructure.Power?.Available == true ? "? Available" : "? Not available")
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Fibre</th>
+                                <td class="@(Evaluation.Infrastructure.Communications?.FibreAvailable == true ? "available" : "unavailable")">
+                                    @(Evaluation.Infrastructure.Communications?.FibreAvailable == true ? "? Available" : "? Not available")
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                }
+
+                @if (Evaluation.Climate != null)
+                {
+                    <div class="data-section">
+                        <h3>??? Climate Data</h3>
+                        <table class="data-table">
+                            <tr>
+                                <th>Wind Zone</th>
+                                <td>@(Evaluation.Climate.WindZone ?? "Not available")</td>
+                            </tr>
+                            @if (Evaluation.Climate.Rainfall != null)
+                            {
+                                <tr>
+                                    <th>Annual Rainfall</th>
+                                    <td>@(Evaluation.Climate.Rainfall.AnnualMean?.ToString() ?? "N/A")mm</td>
+                                </tr>
+                            }
+                        </table>
+                    </div>
+                }
+
+                @if (Evaluation.DataGaps.Count > 0)
+                {
+                    <div class="data-section data-gaps">
+                        <h3>?? Data Gaps</h3>
+                        <ul>
+                            @foreach (var gap in Evaluation.DataGaps)
+                            {
+                                <li class="gap-@gap.Severity.ToString().ToLower()">
+                                    <strong>@gap.Section - @gap.Field:</strong> @gap.Reason
+                                    @if (!string.IsNullOrEmpty(gap.SuggestedAction))
+                                    {
+                                        <br /><em>Suggested: @gap.SuggestedAction</em>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="no-results">
+            <h2>No results found</h2>
+            <p>We couldn't find data for the address "@Address". Please check the address and try again.</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? Address { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? address { get; set; }
+
+    private SiteEvaluation? Evaluation { get; set; }
+    private bool IsLoading { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // Use query parameter if route parameter is empty
+        if (string.IsNullOrEmpty(Address) && !string.IsNullOrEmpty(address))
+        {
+            Address = address;
+        }
+    }
+
+    private static string GetHazardClass(string zone)
+    {
+        return zone.ToLower() switch
+        {
+            "high" => "hazard-high",
+            "medium" => "hazard-medium",
+            "low" => "hazard-low",
+            _ => ""
+        };
+    }
+
+    private static string GetLiquefactionClass(string category)
+    {
+        return category.ToUpper() switch
+        {
+            "TC3" => "hazard-high",
+            "TC2" => "hazard-medium",
+            "TC1" => "hazard-low",
+            _ => ""
+        };
+    }
+}

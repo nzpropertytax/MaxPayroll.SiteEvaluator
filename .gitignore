@@ -1,0 +1,57 @@
+# .NET
+bin/
+obj/
+*.user
+*.userosscache
+*.suo
+*.cache
+*.log
+
+# IDE
+.vs/
+.vscode/
+*.sln.docstates
+.idea/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]uild/
+bld/
+
+# NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+TestResult.xml
+coverage*.json
+coverage*.xml
+coverage*.info
+
+# Rider
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local app data
+*.db
+*.db-journal
+Data/*.db
+
+# User secrets
+secrets.json
+appsettings.Development.json
+appsettings.Local.json
+
+# Publish output
+publish/
