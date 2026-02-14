@@ -363,7 +363,7 @@
             </div>
 
             <!-- Quick Actions -->
-            <div class="card shadow-sm">
+            <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white">
                     <h5 class="mb-0"><i class="fa fa-bolt me-2"></i>Quick Actions</h5>
                 </div>
@@ -376,6 +376,21 @@
                     </a>
                 </div>
             </div>
+
+            <!-- Admin Settings (Admin only) -->
+            @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+            {
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fa fa-cogs me-2"></i>Administration</h5>
+                    </div>
+                    <div class="card-body d-grid gap-2">
+                        <a href="/SiteEvaluator/Admin/Settings" class="btn btn-outline-secondary">
+                            <i class="fa fa-wrench me-2"></i>Service Settings
+                        </a>
+                    </div>
+                </div>
+            }
         </div>
     </div>
 </div>

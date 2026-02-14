@@ -7,7 +7,7 @@
     var propertyMatch = Model.WizardState.PropertyMatch;
 }
 
-<link rel="stylesheet" href="~/css/site-evaluator-wizard.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/_content/MaxPayroll.SiteEvaluator/css/site-evaluator-wizard.css" asp-append-version="true" />
 
 <div class="evaluation-wizard">
     <!-- Wizard Header -->
@@ -119,13 +119,12 @@
 </div>
 
 <!-- Help Toggle Button -->
-<button type="button" class="help-toggle-btn" onclick="SiteEvaluatorWizard.openHelp('step-@step')" title="Help">
+<button type="button" class="help-toggle-btn" id="helpToggleBtn" title="Help">
     <i class="fa fa-question"></i>
 </button>
 
 @section Scripts {
-<script src="~/js/admin/flow-stepper.js" asp-append-version="true"></script>
-<script src="~/js/site-evaluator-wizard.js" asp-append-version="true"></script>
+<script src="~/_content/MaxPayroll.SiteEvaluator/js/site-evaluator-wizard.js" asp-append-version="true"></script>
 <script>
     // Initialize wizard with current step
     document.addEventListener('DOMContentLoaded', function() {
@@ -133,6 +132,14 @@
             currentStep: @step,
             totalSteps: 8
         });
+        
+        // Attach help button click handler after script loads
+        var helpBtn = document.getElementById('helpToggleBtn');
+        if (helpBtn) {
+            helpBtn.addEventListener('click', function() {
+                SiteEvaluatorWizard.openHelp('step-@step');
+            });
+        }
     });
 </script>
 }

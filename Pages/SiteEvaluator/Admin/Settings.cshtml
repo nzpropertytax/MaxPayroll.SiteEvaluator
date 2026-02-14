@@ -1,0 +1,354 @@
+@page "/SiteEvaluator/Admin/Settings"
+@model MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.Admin.SettingsModel
+@using MaxPayroll.SiteEvaluator.Pages.SiteEvaluator.Admin
+
+@{
+    ViewData["Title"] = "Site Evaluator Settings";
+    ViewData["NoIndex"] = true;
+}
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-1">
+                        <i class="fa fa-cogs text-primary me-2"></i>
+                        Site Evaluator Settings
+                    </h1>
+                    <p class="text-muted mb-0">Configure API keys and external service connections</p>
+                </div>
+                <a href="/SiteEvaluator/Dashboard" class="btn btn-outline-secondary">
+                    <i class="fa fa-arrow-left me-1"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Service Status Overview -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fa fa-server me-2"></i>Integration Services Status</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Status</th>
+                                    <th>API Key</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var service in Model.ServiceStatuses)
+                                {
+                                    var statusClass = service.Status switch
+                                    {
+                                        ServiceStatus.Configured => "bg-success",
+                                        ServiceStatus.FallbackMode => "bg-warning text-dark",
+                                        ServiceStatus.NotConfigured => "bg-secondary",
+                                        _ => "bg-danger"
+                                    };
+                                    var statusText = service.Status switch
+                                    {
+                                        ServiceStatus.Configured => "? Ready",
+                                        ServiceStatus.FallbackMode => "? Fallback",
+                                        ServiceStatus.NotConfigured => "Not Configured",
+                                        _ => "Error"
+                                    };
+                                    
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@service.Name</div>
+                                            <small class="text-muted">@service.Description</small>
+                                            @if (!string.IsNullOrEmpty(service.FallbackDescription))
+                                            {
+                                                <br /><small class="text-info"><i class="fa fa-info-circle me-1"></i>@service.FallbackDescription</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge @statusClass">@statusText</span>
+                                            @if (service.RequiresPaidSubscription)
+                                            {
+                                                <span class="badge bg-info ms-1" title="Requires paid subscription">
+                                                    <i class="fa fa-dollar-sign"></i>
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (service.RequiresApiKey)
+                                            {
+                                                if (service.IsConfigured)
+                                                {
+                                                    <span class="text-success"><i class="fa fa-check-circle me-1"></i>Configured</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-warning"><i class="fa fa-exclamation-circle me-1"></i>Required</span>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Not required</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                @if (!string.IsNullOrEmpty(service.DocumentationUrl))
+                                                {
+                                                    <a href="@service.DocumentationUrl" target="_blank" class="btn btn-outline-secondary" title="Documentation">
+                                                        <i class="fa fa-external-link-alt"></i>
+                                                    </a>
+                                                }
+                                                @{
+                                                    var testHandler = service.Name switch
+                                                    {
+                                                        "LINZ Address API" => "TestLinz",
+                                                        "NZGD (Geotechnical)" => "TestNzgd",
+                                                        "GNS Science (Seismic)" => "TestGns",
+                                                        "NIWA (Climate)" => "TestNiwa",
+                                                        "Christchurch City Council" => "TestCouncil",
+                                                        "Auckland Council" => "TestCouncil",
+                                                        "Wellington City Council" => "TestCouncil",
+                                                        _ => ""
+                                                    };
+                                                    var councilParam = service.Name switch
+                                                    {
+                                                        "Christchurch City Council" => "christchurch",
+                                                        "Auckland Council" => "auckland",
+                                                        "Wellington City Council" => "wellington",
+                                                        _ => ""
+                                                    };
+                                                }
+                                                @if (!string.IsNullOrEmpty(testHandler))
+                                                {
+                                                    <form method="post" asp-page-handler="@testHandler" class="d-inline">
+                                                        @if (!string.IsNullOrEmpty(councilParam))
+                                                        {
+                                                            <input type="hidden" name="council" value="@councilParam" />
+                                                        }
+                                                        <button type="submit" class="btn btn-outline-primary" title="Test Connection">
+                                                            <i class="fa fa-plug"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Key Configuration Instructions -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fa fa-key me-2"></i>API Key Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <i class="fa fa-info-circle me-2"></i>
+                        API keys should be configured in <code>appsettings.json</code> or environment variables for security.
+                    </div>
+
+                    <h6 class="text-primary mb-3">Required Configuration</h6>
+                    <div class="bg-light p-3 rounded mb-4">
+                        <pre class="mb-0"><code>{
+  "SiteEvaluator": {
+    "Linz": {
+      "ApiKey": "your-linz-api-key"
+    },
+    "Nzgd": {
+      "ApiKey": "optional-nzgd-key"
+    },
+    "Stripe": {
+      "SecretKey": "sk_live_...",
+      "WebhookSecret": "whsec_..."
+    }
+  }
+}</code></pre>
+                    </div>
+
+                    <h6 class="text-primary mb-3">Getting API Keys</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6><i class="fa fa-map-marker-alt text-success me-2"></i>LINZ Address API</h6>
+                                    <p class="small text-muted mb-2">Required for address autocomplete and geocoding.</p>
+                                    <ol class="small mb-2">
+                                        <li>Go to <a href="https://data.linz.govt.nz/" target="_blank">data.linz.govt.nz</a></li>
+                                        <li>Create an account (free)</li>
+                                        <li>Generate an API key</li>
+                                        <li>Enable Address API access</li>
+                                    </ol>
+                                    <span class="badge bg-success">Free</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6><i class="fa fa-file-alt text-info me-2"></i>LINZ Landonline</h6>
+                                    <p class="small text-muted mb-2">Optional - for property ownership and title data.</p>
+                                    <ol class="small mb-2">
+                                        <li>Visit <a href="https://www.linz.govt.nz/products-services/data" target="_blank">LINZ Data Services</a></li>
+                                        <li>Apply for Landonline subscription</li>
+                                        <li>Set up API access (B2B)</li>
+                                    </ol>
+                                    <span class="badge bg-warning text-dark">~$500/year</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6><i class="fa fa-credit-card text-primary me-2"></i>Stripe</h6>
+                                    <p class="small text-muted mb-2">Required for billing and subscriptions.</p>
+                                    <ol class="small mb-2">
+                                        <li>Go to <a href="https://dashboard.stripe.com/" target="_blank">dashboard.stripe.com</a></li>
+                                        <li>Create/login to account</li>
+                                        <li>Get API keys from Developers section</li>
+                                        <li>Set up webhook endpoint</li>
+                                    </ol>
+                                    <span class="badge bg-info">Pay per transaction</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Stats -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fa fa-chart-bar me-2"></i>Service Overview</h5>
+                </div>
+                <div class="card-body">
+                    @{
+                        var configured = Model.ServiceStatuses.Count(s => s.Status == ServiceStatus.Configured);
+                        var fallback = Model.ServiceStatuses.Count(s => s.Status == ServiceStatus.FallbackMode);
+                        var notConfigured = Model.ServiceStatuses.Count(s => s.Status == ServiceStatus.NotConfigured);
+                        var total = Model.ServiceStatuses.Count;
+                    }
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><i class="fa fa-check-circle text-success me-2"></i>Ready</span>
+                        <span class="fw-bold">@configured / @total</span>
+                    </div>
+                    <div class="progress mb-3" style="height: 8px;">
+                        <div class="progress-bar bg-success" style="width: @(configured * 100 / total)%"></div>
+                        <div class="progress-bar bg-warning" style="width: @(fallback * 100 / total)%"></div>
+                        <div class="progress-bar bg-secondary" style="width: @(notConfigured * 100 / total)%"></div>
+                    </div>
+                    
+                    <ul class="list-unstyled small mb-0">
+                        <li class="mb-1">
+                            <span class="badge bg-success me-1">@configured</span> Fully configured
+                        </li>
+                        <li class="mb-1">
+                            <span class="badge bg-warning text-dark me-1">@fallback</span> Using fallback data
+                        </li>
+                        <li>
+                            <span class="badge bg-secondary me-1">@notConfigured</span> Not configured
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Current Config Display -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fa fa-cog me-2"></i>Current Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted">LINZ API Key</td>
+                            <td class="font-monospace small">
+                                @if (!string.IsNullOrEmpty(Model.LinzApiKey))
+                                {
+                                    <span class="text-success">@Model.LinzApiKey</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not set</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">NZGD API Key</td>
+                            <td class="font-monospace small">
+                                @if (!string.IsNullOrEmpty(Model.NzgdApiKey))
+                                {
+                                    <span class="text-success">@Model.NzgdApiKey</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not set</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Stripe Key</td>
+                            <td class="font-monospace small">
+                                @if (!string.IsNullOrEmpty(Model.StripeSecretKey))
+                                {
+                                    <span class="text-success">@Model.StripeSecretKey</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not set</span>
+                                }
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fa fa-link me-2"></i>Quick Links</h5>
+                </div>
+                <div class="card-body d-grid gap-2">
+                    <a href="/SiteEvaluator/Dashboard" class="btn btn-outline-primary">
+                        <i class="fa fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a href="/SiteEvaluator/EvaluationWizard" class="btn btn-outline-success">
+                        <i class="fa fa-magic me-2"></i>New Evaluation
+                    </a>
+                    <a href="/SiteEvaluator" class="btn btn-outline-secondary">
+                        <i class="fa fa-search me-2"></i>Quick Search
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
